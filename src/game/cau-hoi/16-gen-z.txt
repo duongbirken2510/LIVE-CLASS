@@ -20,7 +20,7 @@ TRANG ĐIỂM | Tô vẽ mặt mũi, trước và sau như hai người khác nh
 MÌ CAY BẢY CẤP ĐỘ | Thử thách ăn cay, tới cấp cuối là khóc mà vẫn ăn. | 3
 GAME THỦ | Người chơi game tới quên ăn quên ngủ, có người còn kiếm ra tiền. | 2
 GÁNH TEAM | Một mình đánh cả trận, đồng đội chỉ việc đi theo. | 2 | CARRY
-GÀ | Chơi dở, mới tập, bị cả đội chửi. | 1 | NOOB
+TẬP SỰ | Mới bắt đầu tập chơi game, thao tác còn bỡ ngỡ, cần đồng đội hướng dẫn thêm. | 1 | TÂN THỦ
 CAO THỦ | Chơi tới đâu thắng tới đó, đồng đội nhìn mà nể. | 1 | PRO
 SẠC DỰ PHÒNG | Cục pin mang theo cứu điện thoại, quên ở nhà là cả ngày lo âu. | 3 | PIN DỰ PHÒNG
 ẢNH ĐẠI DIỆN | Hình nhỏ cạnh tên tài khoản, chọn mất một tuần mới đổi. | 2 | AVATAR
@@ -49,9 +49,9 @@ HỦY KẾT BẠN | Cãi nhau xong, việc đầu tiên làm trên mạng là c�
 ĐÃ XEM | Hai chữ nhỏ dưới tin nhắn làm người ta thức trắng vì không được trả lời. | 1
 MẬT KHẨU | Vào quán cà phê, câu đầu tiên hỏi nhân viên không phải giá nước. | 1
 TRÙM CUỐI | Xuất hiện sau cùng mà mạnh nhất, như mẹ bước vào lúc mình đang chơi điện tử. | 2
-TÀI KHOẢN ẢO | Không ảnh, không tên thật, chuyên vào bình luận gây chiến. | 2
-ĐĂNG XUẤT | Nút thoát tài khoản, cũng là cách nói "tôi mệt rồi, tôi đi đây". | 2
-TRANG CÁ NHÂN | Có ảnh bìa, ảnh đại diện và mấy bài đăng hồi cấp hai muốn xoá gấp. | 2
+TÀI KHOẢN PHỤ | Không để ảnh thật, dùng để âm thầm lướt xem tin tức mỗi ngày. | 2
+THOÁT TÀI KHOẢN | Bấm nút rời khỏi ứng dụng trên máy tính trước khi đứng dậy tan làm. | 2
+TRANG CÁ NHÂN | Có ảnh bìa, ảnh đại diện và mấy bài đăng kỷ niệm hồi cấp hai. | 2
 ẢNH BÌA | Tấm ảnh to nằm ngang trên đầu trang, đổi theo mỗi mùa thất tình. | 2
 NHÓM KÍN | Hội riêng trên mạng, muốn vào phải trả lời ba câu hỏi của quản trị viên. | 2
 TIN NHẮN THOẠI | Lười gõ chữ nên bấm giữ nói một tràng dài ba phút. | 2

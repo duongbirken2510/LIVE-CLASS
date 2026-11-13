@@ -1,6 +1,9 @@
 /**
  * Tóc nhìn từ sau lưng, vẽ bằng SVG để mỗi học sinh một kiểu (theo tên tài khoản, cố định).
  * Khung 100x100 = vùng đầu đã xoá khỏi ảnh thân (public/assets/nv/<nam|nu>/head.json); đuôi tóc được tràn ra ngoài.
+ * Nâng cấp theo 4 Kỳ thi (stageIdx 0..3):
+ *  - Kỳ 3 (stageIdx = 2, Cấp 3 THPT): Đeo băng đô Quyết Thắng + dải ruy băng sau đầu.
+ *  - Kỳ 4 (stageIdx = 3, Đấu Trường Tú Tài): Đội Vòng Nguyệt Quế Vàng Kim (Top 3 đội thêm Mũ Tú Tài 🎓).
  */
 const COLORS = ['#1d1714', '#1d1714', '#1d1714', '#1d1714', '#2f221b', '#2f221b', '#2f221b', '#4a3021', '#4a3021', '#7a4b2a', '#b8862f', '#c76b8e'];
 const BOY = ['ngan', 'ngan', 'dinh', 'xoan', 'mu'] as const;
@@ -15,7 +18,17 @@ export const hashName = (s: string) => {
   return Math.abs(h);
 };
 
-export function Hair({ username, girl }: { username: string; girl: boolean }) {
+export function Hair({
+  username,
+  girl,
+  stageIdx = 0,
+  rank = 99,
+}: {
+  username: string;
+  girl: boolean;
+  stageIdx?: 0 | 1 | 2 | 3;
+  rank?: number;
+}) {
   const h = hashName(username);
   const color = COLORS[h % COLORS.length];
   const style = girl ? GIRL[(h >> 4) % GIRL.length] : BOY[(h >> 4) % BOY.length];
@@ -145,9 +158,49 @@ export function Hair({ username, girl }: { username: string; girl: boolean }) {
       );
       break;
   }
+
   return (
     <svg viewBox="0 0 100 100" preserveAspectRatio="none" className="absolute overflow-visible" style={{ inset: 0, width: '100%', height: '100%' }}>
       {body}
+      {/* Kỳ 3 (Cấp 3 THPT): Băng đô Quyết Thắng màu đỏ viền vàng buộc sau đầu */}
+      {stageIdx === 2 && (
+        <g>
+          <path d="M9 36 Q50 46 91 36 L92 45 Q50 55 8 45 Z" fill="#dc2626" stroke="#fbbf24" strokeWidth="1.8" />
+          <circle cx="50" cy="44" r="5.5" fill="#fbbf24" stroke="#7f1d1d" strokeWidth="1.5" />
+          <path d="M48 46 C40 58 34 68 30 78" stroke="#dc2626" strokeWidth="4.5" strokeLinecap="round" fill="none" />
+          <path d="M52 46 C60 58 66 68 70 78" stroke="#dc2626" strokeWidth="4.5" strokeLinecap="round" fill="none" />
+        </g>
+      )}
+      {/* Kỳ 4 (Đấu Trường Tú Tài): Vòng Nguyệt Quế Vàng Kim + Mũ Cử Nhân Tú Tài cho Top 3 */}
+      {stageIdx === 3 && (
+        <g>
+          {/* Vòng nguyệt quế vàng ôm quanh đầu */}
+          <path d="M10 38 Q50 52 90 38" stroke="#f59e0b" strokeWidth="3.5" fill="none" />
+          {[-34, -24, -14, 14, 24, 34].map((dx, idx) => (
+            <ellipse
+              key={idx}
+              cx={50 + dx}
+              cy={37 - Math.abs(dx) * 0.12}
+              rx="6"
+              ry="3.2"
+              transform={`rotate(${dx < 0 ? 28 : -28} ${50 + dx} ${37 - Math.abs(dx) * 0.12})`}
+              fill="#fde047"
+              stroke="#b45309"
+              strokeWidth="1.2"
+            />
+          ))}
+          <circle cx="50" cy="43" r="4.5" fill="#ef4444" stroke="#fef08a" strokeWidth="1.5" />
+          {/* Top 3 học sinh xuất sắc đội thêm Mũ Cử Nhân Tú Tài */}
+          {rank < 3 && (
+            <g>
+              <polygon points="50,-8 96,10 50,26 4,10" fill="#1e1b4b" stroke="#fbbf24" strokeWidth="2.5" />
+              <path d="M24 18 L24 32 Q50 40 76 32 L76 18" fill="#312e81" stroke="#fbbf24" strokeWidth="2" />
+              <path d="M50 10 L84 18 L86 42" stroke="#fbbf24" strokeWidth="2.5" fill="none" />
+              <circle cx="86" cy="44" r="3.5" fill="#fbbf24" />
+            </g>
+          )}
+        </g>
+      )}
     </svg>
   );
 }

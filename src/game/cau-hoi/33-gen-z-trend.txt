@@ -10,14 +10,14 @@ CỜ ĐỎ | Dấu hiệu người yêu có vấn đề, thấy là chạy ngay 
 CỜ XANH | Người yêu chu đáo, biết nghe, biết lo, gặp được thì giữ chặt đừng buông. | 2 | GREEN FLAG
 FA | Viết tắt tiếng Anh của người ế lâu năm, Forever Alone. | 2
 TẤU HÀI | Làm trò cười, nói chuyện như đang diễn hài trên sân khấu. | 2
-CÀ KHỊA | Châm chọc người khác cho vui, việc cô Ngân làm giỏi nhất lớp. | 1
+TRÊU ĐÙA | Nói chuyện hài hước dí dỏm để cả lớp cùng cười vui vẻ. | 1
 ĐU IDOL | Theo thần tượng đi khắp nơi, mua album, săn vé xem biểu diễn. | 2
 SĂN VÉ | Ngồi canh từng giây lúc mở bán, tay run như đi thi đại học. | 2
 PIN YẾU | Hai mươi phần trăm thôi là Gen Z đã thấy lo hơn hết tiền. | 1
 KÈO | Lời rủ đi chơi, đi ăn: "có ... không, đi liền". | 2
 BÙNG KÈO | Hẹn rồi mà sát giờ báo bận, không đi nữa. | 1 | BÙNG
 LEO CÂY | Bị hẹn rồi đứng chờ mà người kia không tới. | 2
-PHỐT | Bài đăng tố ai đó làm sai, cả mạng vào đọc bình luận. | 2 | BÓC PHỐT
+TIN NÓNG | Chuyện mới nhất đang được cả mạng xã hội quan tâm bàn luận. | 2 | HOT TREND
 HÓNG | Ngồi chờ chuyện lùm xùm có diễn biến mới, tay cầm bỏng ngô. | 1 | HÓNG HỚT
 LẦY | Tính nghịch ngợm, trêu hoài không chán. | 1 | LẦY LỘI
 THẢ VÍA | Gửi chút may mắn qua bình luận cho ai đang đi thi, đi phỏng vấn. | 2 | XIN VÍA
@@ -42,8 +42,8 @@ QUẦN ỐNG RỘNG | Quần rộng thùng thình kiểu Gen Z, đi bộ quét l
 ẢO MA | Khó tin quá, kỳ lạ quá, nghe xong không hiểu nổi. | 2
 TRẠNG THÁI | Dòng tâm trạng đăng lên mạng, họ hàng vào bình luận hỏi han. | 2 | STATUS
 TIN NHẮN THOẠI | Lười gõ phím thì bấm giữ nút micro nói luôn. | 2 | VOICE
-TRẺ TRÂU | Người hay gây gổ trên mạng, nói năng xốc nổi, chưa nghĩ đã gõ. | 2
-ANH HÙNG BÀN PHÍM | Ngoài đời hiền khô, lên mạng thì chửi cả thế giới. | 3
+NĂNG ĐỘNG | Tính cách nhiệt tình, sôi nổi, hoạt động nào của lớp cũng xung phong. | 2
+GÕ PHÍM NHANH | Kỹ năng gõ mười ngón thoăn thoắt không cần nhìn bàn phím. | 3
 ĐỈNH NÓC | Giỏi nhất, hay nhất rồi, kịch trần luôn. | 2 | ĐỈNH NÓC KỊCH TRẦN
 CHIẾN THẦN | Người giỏi một việc tới mức huyền thoại, "... săn sale", "... ngủ nướng". | 2
 U LÀ TRỜI | Câu kêu trời phiên bản dễ thương, kéo dài chữ đầu cho đủ cảm xúc. | 2

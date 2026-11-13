@@ -865,6 +865,10 @@ export class Classroom {
     }
     this.q = this.roundQs[this.qNo - 1] ?? null;
     if (!this.q) return this.startResults(now, true);
+    // Tự động đổi trang phục theo 4 chặng (Cấp 1: câu 1-5 -> trắng, Cấp 2: câu 6-10 -> sơ mi, Cấp 3 & Tú tài: câu 11-20 -> áo dài xanh ngọc)
+    if (this.qNo <= 5) this.outfit = 'trang';
+    else if (this.qNo <= 10) this.outfit = 'so-mi';
+    else this.outfit = 'ao-dai-xanh-ngoc';
     // câu toán hiện phép tính, đuổi hình bắt chữ hiện emoji: không xáo chữ
     this.tiles = this.q.math || this.q.slot === 'dh' ? [] : scramble(this.q.answer, this.rand);
     this.boardShown = false;
@@ -1903,6 +1907,25 @@ export class Classroom {
   skip(now: number): Say[] {
     this.phaseEndsAt = now;
     return this.tick(now);
+  }
+
+  /** Chuyển nhanh sang Kỳ / Cấp học (0: Cấp 1 Câu 1, 1: Cấp 2 Câu 6, 2: Cấp 3 Câu 11, 3: Tú Tài Câu 16) */
+  jumpToStage(stageIdx: number, now: number): Say[] {
+    const idx = Math.max(0, Math.min(3, Math.floor(stageIdx)));
+    if (this.roundQs.length === 0) {
+      this.round = Math.max(1, this.round);
+      this.pickRound(now);
+    }
+    this.show = null;
+    this.recess = null;
+    this.qNo = idx * 5; // startQuestion sẽ cộng 1 thành câu 1, 6, 11, 16
+    const stageNames = [
+      'Bắt đầu Kỳ 1: Cấp 1 Tiểu học, Khởi động!',
+      'Chuyển sang Kỳ 2: Cấp 2 Trung học cơ sở, Tăng tốc!',
+      'Bước vào Kỳ 3: Cấp 3 Trung học phổ thông, Bứt phá!',
+      'Tiến vào Kỳ 4: Đấu trường Tú Tài, Về đích!',
+    ];
+    return this.mainOf([this.t(stageNames[idx]), ...this.startQuestion(now)]);
   }
 
   /** Nút "Ra chơi ngay" ở trang điều khiển: chơi luôn 1 trò */

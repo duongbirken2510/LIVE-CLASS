@@ -12,6 +12,8 @@ import express from 'express';
 import dotenv from 'dotenv';
 import path from 'path';
 import fs from 'fs';
+import { spawn, type ChildProcessByStdio } from 'child_process';
+import type { Readable, Writable } from 'stream';
 import { fileURLToPath } from 'url';
 import { TikTokLiveConnection, WebcastEvent, ControlEvent } from 'tiktok-live-connector';
 import { MsEdgeTTS, OUTPUT_FORMAT } from 'msedge-tts';
@@ -93,7 +95,7 @@ type RoomSettings = {
   birthdayText?: string;
   standWrong?: boolean;
 };
-let settings: { channelName?: string; tiktokUser?: string; room?: RoomSettings } = {};
+let settings: { channelName?: string; tiktokUser?: string; vieneuVoice?: string; room?: RoomSettings } = {};
 try {
   settings = JSON.parse(fs.readFileSync(SETTINGS_FILE, 'utf8'));
   if (typeof settings.channelName === 'string' && settings.channelName.trim()) {
@@ -486,12 +488,318 @@ async function googleTts(text: string, lang = 'vi'): Promise<Buffer> {
 }
 
 const ttsCache = new Map<string, Buffer>();
+
+// ---------- Giọng đọc AI VieNeu-TTS tích hợp trực tiếp (Subprocess stdio pipe, 25 giọng Nam/Nữ gồm Adam bựa) ----------
+interface VieneuVoiceInfo {
+  id: string;
+  name: string;
+  description: string;
+  gender: string;
+}
+interface VieneuJob {
+  id: number;
+  text: string;
+  voice: string;
+  res: express.Response;
+  parts: Buffer[];
+  timer: ReturnType<typeof setTimeout>;
+  resolve: (ok: boolean) => void;
+}
+
+const DEFAULT_FEMALE_VIENEU = 'Trúc Ly';
+const DEFAULT_MALE_VIENEU = 'Adam bựa';
+
+let activeVieneuVoice =
+  settings.vieneuVoice !== undefined
+    ? settings.vieneuVoice
+    : process.env.VIENEU_VOICE ??
+      (settings.room?.teacher === 'thay' || settings.room?.teacherVoice === 'nam' ? DEFAULT_MALE_VIENEU : DEFAULT_FEMALE_VIENEU);
+let vieneuState: 'loading' | 'ready' | 'unavailable' = 'loading';
+let vieneuVoices: VieneuVoiceInfo[] = [];
+const vieneuCache = new Map<string, Buffer>();
+let vieneuProc: ChildProcessByStdio<Writable, Readable, null> | null = null;
+let nextJobId = 1;
+let currentJob: VieneuJob | null = null;
+const priorityJobs: VieneuJob[] = [];
+const prefetchJobs: VieneuJob[] = [];
+
+const getVieneuStatus = () => ({
+  state: vieneuState,
+  voice: activeVieneuVoice,
+  voices: vieneuVoices,
+});
+
+function resolveVieneuDir(): string {
+  const candidates = [
+    process.env.VIENEU_DIR,
+    path.join(__dirname, 'VieNeu-TTS'),
+    path.join(__dirname, '..', 'LIVE-TRANGNGUYEN', 'VieNeu-TTS'),
+  ].filter((x): x is string => !!x);
+  for (const dir of candidates) {
+    if (fs.existsSync(path.join(dir, '.venv', 'Scripts', 'python.exe'))) return dir;
+  }
+  return path.join(__dirname, 'VieNeu-TTS');
+}
+
+function pumpVieneuQueue() {
+  if (currentJob || vieneuState !== 'ready' || !vieneuProc?.stdin.writable) return;
+  while (priorityJobs.length > 0 || prefetchJobs.length > 0) {
+    const job = priorityJobs.shift() ?? prefetchJobs.shift()!;
+    if (job.res.writableEnded || job.res.destroyed) {
+      clearTimeout(job.timer);
+      job.resolve(true);
+      continue;
+    }
+    const cacheKey = `${job.voice}|${job.text}`;
+    const cached = vieneuCache.get(cacheKey);
+    if (cached) {
+      clearTimeout(job.timer);
+      job.res.setHeader('Content-Type', 'audio/wav');
+      job.res.send(cached);
+      job.resolve(true);
+      continue;
+    }
+    currentJob = job;
+    try {
+      vieneuProc.stdin.write(JSON.stringify({ id: job.id, text: job.text, voice: job.voice }) + '\n');
+      return;
+    } catch {
+      clearTimeout(job.timer);
+      currentJob = null;
+      job.resolve(false);
+    }
+  }
+}
+
+function startVieneuWorker() {
+  const vieneuDir = resolveVieneuDir();
+  const pyExe = path.join(vieneuDir, '.venv', 'Scripts', 'python.exe');
+  const workerScript = path.join(__dirname, 'tools', 'vieneu-worker.py');
+  if (!fs.existsSync(pyExe) || !fs.existsSync(workerScript)) {
+    console.log('[VieNeu] Không tìm thấy môi trường Python VieNeu-TTS, dùng giọng Microsoft Edge.');
+    vieneuState = 'unavailable';
+    broadcast('vieneu', getVieneuStatus());
+    return;
+  }
+
+  console.log(`[VieNeu] Sử dụng môi trường VieNeu-TTS tại: ${vieneuDir}`);
+  vieneuState = 'loading';
+  broadcast('vieneu', getVieneuStatus());
+
+  const proc = spawn(pyExe, ['-u', workerScript], {
+    cwd: vieneuDir,
+    stdio: ['pipe', 'pipe', 'inherit'],
+    windowsHide: true,
+    env: {
+      ...process.env,
+      PYTHONIOENCODING: 'utf-8',
+      HF_HUB_DISABLE_SYMLINKS_WARNING: '1',
+      HF_HUB_OFFLINE: '1',
+      VIENEU_PRECISION: process.env.VIENEU_PRECISION || 'int8',
+      VIENEU_WATERMARK: '0',
+    },
+  });
+  vieneuProc = proc;
+
+  let rxBuf: Buffer = Buffer.alloc(0);
+  proc.stdout.on('data', (chunk: Buffer) => {
+    rxBuf = rxBuf.length === 0 ? chunk : Buffer.concat([rxBuf, chunk]);
+    while (rxBuf.length >= 9) {
+      const frameType = rxBuf.readUInt8(0);
+      const reqId = rxBuf.readUInt32BE(1);
+      const payloadLen = rxBuf.readUInt32BE(5);
+      if (rxBuf.length < 9 + payloadLen) break;
+      const payload = rxBuf.subarray(9, 9 + payloadLen);
+      rxBuf = rxBuf.subarray(9 + payloadLen);
+
+      if (frameType === 1) {
+        try {
+          const info = JSON.parse(payload.toString('utf8'));
+          vieneuVoices = Array.isArray(info.voices) ? info.voices : [];
+        } catch {
+          vieneuVoices = [];
+        }
+        vieneuState = 'ready';
+        broadcast('vieneu', getVieneuStatus());
+        pumpVieneuQueue();
+      } else if (frameType === 2) {
+        if (currentJob && currentJob.id === reqId) {
+          if (!currentJob.res.headersSent) {
+            currentJob.res.setHeader('Content-Type', 'audio/wav');
+            currentJob.res.setHeader('Cache-Control', 'no-store');
+          }
+          currentJob.parts.push(Buffer.from(payload));
+          if (!currentJob.res.writableEnded) currentJob.res.write(payload);
+        }
+      } else if (frameType === 3) {
+        if (currentJob && currentJob.id === reqId) {
+          const job = currentJob;
+          currentJob = null;
+          clearTimeout(job.timer);
+          if (!job.res.writableEnded) job.res.end();
+          if (job.parts.length > 0) {
+            const cacheKey = `${job.voice}|${job.text}`;
+            vieneuCache.set(cacheKey, Buffer.concat(job.parts));
+            if (vieneuCache.size > 120) vieneuCache.delete(vieneuCache.keys().next().value!);
+          }
+          job.resolve(true);
+          pumpVieneuQueue();
+        }
+      } else if (frameType === 4) {
+        const errMsg = payload.toString('utf8');
+        console.warn('[VieNeu Worker lỗi]', errMsg);
+        if (currentJob && currentJob.id === reqId) {
+          const job = currentJob;
+          currentJob = null;
+          clearTimeout(job.timer);
+          if (job.res.headersSent) {
+            if (!job.res.writableEnded) job.res.end();
+            job.resolve(true);
+          } else {
+            job.resolve(false);
+          }
+          pumpVieneuQueue();
+        }
+      }
+    }
+  });
+
+  proc.on('exit', (code) => {
+    if (vieneuProc !== proc) return;
+    vieneuProc = null;
+    console.warn(`[VieNeu] Worker đã thoát (code=${code})`);
+    if (currentJob) {
+      const job = currentJob;
+      currentJob = null;
+      clearTimeout(job.timer);
+      if (job.res.headersSent) {
+        if (!job.res.writableEnded) job.res.end();
+        job.resolve(true);
+      } else {
+        job.resolve(false);
+      }
+    }
+    while (priorityJobs.length > 0) {
+      const j = priorityJobs.shift()!;
+      clearTimeout(j.timer);
+      j.resolve(false);
+    }
+    while (prefetchJobs.length > 0) {
+      const j = prefetchJobs.shift()!;
+      clearTimeout(j.timer);
+      j.resolve(false);
+    }
+    vieneuState = 'unavailable';
+    broadcast('vieneu', getVieneuStatus());
+  });
+}
+
+const cleanupWorker = () => {
+  if (vieneuProc) {
+    try {
+      vieneuProc.kill();
+    } catch {
+      // bỏ qua
+    }
+    vieneuProc = null;
+  }
+};
+process.on('exit', cleanupWorker);
+process.on('SIGINT', () => {
+  cleanupWorker();
+  process.exit(0);
+});
+process.on('SIGTERM', () => {
+  cleanupWorker();
+  process.exit(0);
+});
+
+async function vieneuTts(text: string, res: express.Response, isPrefetch: boolean, voiceOverride?: string): Promise<boolean> {
+  const voice = voiceOverride || activeVieneuVoice;
+  if (!voice) return false;
+  const cacheKey = `${voice}|${text}`;
+  const cached = vieneuCache.get(cacheKey);
+  if (cached) {
+    res.setHeader('Content-Type', 'audio/wav');
+    res.send(cached);
+    return true;
+  }
+  if (vieneuState === 'unavailable') return false;
+  if (vieneuState === 'loading' && !isPrefetch) return false; // Đang nạp mà cần đọc ngay thì dùng tạm Edge để không chờ
+
+  return new Promise<boolean>((resolve) => {
+    const id = nextJobId++;
+    const timeoutMs = isPrefetch ? 45_000 : 12_000;
+    const job: VieneuJob = {
+      id,
+      text,
+      voice,
+      res,
+      parts: [],
+      resolve,
+      timer: setTimeout(() => {
+        const idx1 = priorityJobs.indexOf(job);
+        if (idx1 !== -1) priorityJobs.splice(idx1, 1);
+        const idx2 = prefetchJobs.indexOf(job);
+        if (idx2 !== -1) prefetchJobs.splice(idx2, 1);
+        if (currentJob !== job) {
+          resolve(false);
+        }
+      }, timeoutMs),
+    };
+    if (isPrefetch) prefetchJobs.push(job);
+    else priorityJobs.push(job);
+    pumpVieneuQueue();
+  });
+}
+
+app.get('/api/tts/status', (_req, res) => res.json(getVieneuStatus()));
+app.post('/api/tts/voice', (req, res) => {
+  const v = typeof req.body?.voice === 'string' ? req.body.voice.trim().slice(0, 60) : '';
+  if (v === '__edge_f__') {
+    activeVieneuVoice = '';
+    saveSettings({ vieneuVoice: '', room: { ...settings.room, teacherVoice: 'nu' } });
+    broadcast('roomCfg', settings.room);
+  } else if (v === '__edge_m__') {
+    activeVieneuVoice = '';
+    saveSettings({ vieneuVoice: '', room: { ...settings.room, teacherVoice: 'nam' } });
+    broadcast('roomCfg', settings.room);
+  } else {
+    activeVieneuVoice = v;
+    const found = vieneuVoices.find((x) => x.id === v);
+    const nextRoom: RoomSettings = { ...settings.room };
+    if (found?.gender === 'male') nextRoom.teacherVoice = 'nam';
+    else if (found?.gender === 'female') nextRoom.teacherVoice = 'nu';
+    saveSettings({ vieneuVoice: v, room: nextRoom });
+    broadcast('roomCfg', settings.room);
+  }
+  broadcast('vieneu', getVieneuStatus());
+  res.json({ success: true, ...getVieneuStatus(), room: settings.room });
+});
+
 app.get('/api/tts', async (req, res) => {
   try {
-    const text = String(req.query.text || '').trim().slice(0, 1500);
-    if (!text) return res.status(400).send('Thiếu text');
+    const raw = String(req.query.text || '').trim().slice(0, 1500);
+    if (!raw) return res.status(400).send('Thiếu text');
     const rate = Math.min(1.5, Math.max(0.5, Number(req.query.rate) || 1));
     const hype = req.query.hype === '1';
+    const isPrefetch = req.query.prefetch === '1';
+    const english = req.query.v === 'en' || req.query.v === 'enm';
+
+    // Nếu không phải từ vựng tiếng Anh và đang bật giọng AI VieNeu-TTS (Adam bựa, Trúc Ly...)
+    if (!english && activeVieneuVoice) {
+      let targetVoice = activeVieneuVoice;
+      // Nếu kịch bản ép giọng nam (M:) mà giọng đang chọn là nữ thì dùng Adam bựa
+      if (req.query.v === 'm') {
+        const curInfo = vieneuVoices.find((x) => x.id === activeVieneuVoice);
+        if (curInfo && curInfo.gender === 'female') targetVoice = DEFAULT_MALE_VIENEU;
+      }
+      if (await vieneuTts(raw, res, isPrefetch, targetVoice)) return;
+    }
+
+    // Edge / Google không hiểu thẻ cảm xúc [cười] [thở dài]...: bỏ đi để khỏi đọc thành chữ
+    const text = raw.replace(/\[[^\]]*\]\s*/g, '').trim();
+    if (!text) return res.status(204).end();
     // Giọng nữ, giọng nam (chọn ở trang điều khiển), thêm giọng tiếng Anh để đọc từ tiếng Anh cho chuẩn.
     // Chỉ nhận các giọng này, không cho truyền tên giọng tuỳ ý.
     const voiceName = req.query.v === 'f' ? 'vi-VN-HoaiMyNeural' : req.query.v === 'm' ? 'vi-VN-NamMinhNeural' : req.query.v === 'en' ? 'en-US-AnaNeural' : req.query.v === 'enm' ? 'en-US-GuyNeural' : TTS_VOICE;
@@ -499,7 +807,6 @@ app.get('/api/tts', async (req, res) => {
     let audio = ttsCache.get(key);
     let fallback = false;
     if (!audio) {
-      const english = req.query.v === 'en' || req.query.v === 'enm';
       try {
         audio = await edgeTts(text, rate, hype, voiceName); // đã tự thử lại 4 lần bên trong
       } catch (err) {
@@ -580,7 +887,20 @@ app.post('/api/room-settings', (req, res) => {
     patch.birthdayText = t;
   }
   saveRoom(patch);
-  res.json({ success: true, room: settings.room });
+  if (activeVieneuVoice && (patch.teacher || patch.teacherVoice)) {
+    const wantMale = (patch.teacher ?? settings.room?.teacher) === 'thay' || (patch.teacherVoice ?? settings.room?.teacherVoice) === 'nam';
+    const curInfo = vieneuVoices.find((x) => x.id === activeVieneuVoice);
+    if (wantMale && (!curInfo || curInfo.gender === 'female')) {
+      activeVieneuVoice = DEFAULT_MALE_VIENEU;
+      saveSettings({ vieneuVoice: activeVieneuVoice });
+      broadcast('vieneu', getVieneuStatus());
+    } else if (!wantMale && (!curInfo || curInfo.gender === 'male')) {
+      activeVieneuVoice = DEFAULT_FEMALE_VIENEU;
+      saveSettings({ vieneuVoice: activeVieneuVoice });
+      broadcast('vieneu', getVieneuStatus());
+    }
+  }
+  res.json({ success: true, room: settings.room, vieneu: getVieneuStatus() });
 });
 // Tải ảnh nền lên: chỉ nhận PNG, JPG, WEBP (xét cả nội dung file), tên file do server đặt
 const imageExt = (b: Buffer) => {
@@ -920,6 +1240,9 @@ async function start() {
     app.use(express.static(path.join(__dirname, 'dist')));
     app.get('*', (_req, res) => res.sendFile(path.join(__dirname, 'dist', 'index.html')));
   }
+
+  // Khởi chạy ngầm worker giọng đọc VieNeu-TTS ngay trong tiến trình con
+  startVieneuWorker();
 
   // Chỉ nghe trên máy này: API không có đăng nhập, người cùng Wi-Fi không được điều khiển giọng đọc
   app.listen(PORT, '127.0.0.1', () => {

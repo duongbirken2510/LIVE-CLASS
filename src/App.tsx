@@ -19,17 +19,17 @@ export default function App() {
     );
   }
 
-  // Trang điều khiển: xem trước = ảnh chụp từ trang stage, im lặng
+  // Trang điều khiển: đồng bộ giao diện với Ai Là Trạng Nguyên
   return (
     <Dashboard
       status={game.status}
       channelName={game.channelName}
+      extra={<GameControls view={game.view} stageCount={game.stageCount} />}
       preview={
-        <StageFrame maxHeight={window.innerHeight - 40}>
+        <StageFrame maxHeight={720}>
           <GameStage game={game} />
         </StageFrame>
       }
-      extra={<GameControls view={game.view} stageCount={game.stageCount} />}
     />
   );
 }

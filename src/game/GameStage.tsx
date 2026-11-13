@@ -151,6 +151,7 @@ export function GameStage({ game }: { game: GameState }) {
       <motion.div className="absolute inset-0" style={{ transformOrigin: '330px 700px' }} animate={{ scale: 1 }}>
         {/* sàn lớp trong ảnh nền hơi chói: phủ 1 lớp tối nhẹ từ chân bảng trở xuống (chủ kênh chỉnh 2026-11-04) */}
         <div className="pointer-events-none absolute inset-x-0 bottom-0 top-[600px] bg-gradient-to-b from-[#3b1d07]/0 via-[#3b1d07]/20 to-[#3b1d07]/28 mix-blend-multiply" />
+        <StageBackdrop v={v} />
         <Header v={v} name={game.channelName} />
         <EventBadge v={v} />
         <Motto text={v.cfg.motto} />
@@ -174,7 +175,7 @@ export function GameStage({ game }: { game: GameState }) {
       <DanceBanner v={v} />
       <GiftBanner gift={game.lastGift} now={now} />
       <BirthdayBanner v={v} />
-      <GoodbyeBanner v={v} />
+      <GoodbyeBanner v={v} now={now} />
       <FundParty v={v} />
       <LoveHearts n={v.loveFans} />
       <PollCard v={v} />
@@ -261,7 +262,265 @@ function FundParty({ v }: { v: StageView }) {
   );
 }
 
+// Xác định kỳ thi hiện tại (0: Cấp 1 [Câu 1-5], 1: Cấp 2 [Câu 6-10], 2: Cấp 3 [Câu 11-15], 3: Tú Tài [Câu 16-20])
+function stageIdxOf(v: StageView): 0 | 1 | 2 | 3 {
+  if (v.qNo >= 16) return 3;
+  if (v.qNo >= 11) return 2;
+  if (v.qNo >= 6) return 1;
+  return 0;
+}
+
+const STAGE_THEMES = [
+  {
+    badge: '🌱 CẤP 1 · KHỞI ĐỘNG',
+    roomFilter: '',
+    floorOverlay: 'linear-gradient(180deg, rgba(59, 29, 7, 0) 0%, rgba(59, 29, 7, 0.18) 55%, rgba(59, 29, 7, 0.28) 100%)',
+    boardBg: 'radial-gradient(ellipse at 50% 42%, #245c44 0%, #194432 70%, #133627 100%)',
+    boardFrameBg: 'linear-gradient(180deg, #a66b32 0%, #7a4a1d 50%, #5c3512 100%)',
+    boardFrameBorder: '#47270b',
+    boardInnerStroke: '#d4a359',
+    boardGlow: 'rgba(16, 185, 129, 0.12)',
+    headerBg: 'bg-[#f6e3b4] border-[#7a4a1d] shadow-[0_8px_0_#5b3512]',
+    headerTitle: 'text-[#7a2e0e]',
+    headerSub: 'text-[#6b4a22]',
+    podiumHeader: 'bg-[#7a2e0e] text-[#ffe9b8]',
+    podiumBody: 'bg-[#fff6dd]/95 border border-[#c9a45c]',
+    hintPill: 'bg-[#7a2e0e]/85 text-[#ffe9b8]',
+    nametagBorder: 'border-[2px] border-[#16a34a]/70 bg-white/95',
+    ambient: '',
+    thayFilter: '',
+    thayBadge: 'from-[#3b82f6] to-[#1d4ed8] shadow-[0_3px_0_#1e3a8a]',
+    thayIcon: '📘',
+  },
+  {
+    badge: '⚡ CẤP 2 · TĂNG TỐC',
+    roomFilter: 'hue-rotate(-14deg) saturate(1.12) brightness(1.02)',
+    floorOverlay: 'linear-gradient(180deg, rgba(12, 74, 110, 0) 0%, rgba(12, 74, 110, 0.20) 55%, rgba(7, 45, 72, 0.34) 100%)',
+    boardBg: 'radial-gradient(ellipse at 50% 40%, #134e7a 0%, #0c3559 68%, #08243f 100%)',
+    boardFrameBg: 'linear-gradient(180deg, #e2e8f0 0%, #94a3b8 50%, #475569 100%)',
+    boardFrameBorder: '#1e293b',
+    boardInnerStroke: '#38bdf8',
+    boardGlow: 'rgba(56, 189, 248, 0.28)',
+    headerBg: 'bg-[#e0f2fe] border-[#0369a1] shadow-[0_8px_0_#075985]',
+    headerTitle: 'text-[#0c4a6e]',
+    headerSub: 'text-[#0369a1]',
+    podiumHeader: 'bg-[#0369a1] text-[#e0f2fe]',
+    podiumBody: 'bg-[#f0f9ff]/95 border border-[#38bdf8]',
+    hintPill: 'bg-[#075985]/88 text-[#e0f2fe]',
+    nametagBorder: 'border-[2px] border-[#0284c7] bg-[#f8fafc]/95',
+    ambient: 'radial-gradient(circle at 58% 28%, rgba(56, 189, 248, 0.16), transparent 68%)',
+    thayFilter: 'hue-rotate(-32deg) saturate(1.25)',
+    thayBadge: 'from-[#06b6d4] to-[#0e7490] shadow-[0_3px_0_#155e75]',
+    thayIcon: '⚡',
+  },
+  {
+    badge: '🔥 CẤP 3 · BỨT PHÁ',
+    roomFilter: 'hue-rotate(12deg) saturate(1.18) contrast(1.04)',
+    floorOverlay: 'linear-gradient(180deg, rgba(76, 17, 48, 0) 0%, rgba(88, 28, 135, 0.22) 50%, rgba(59, 7, 100, 0.38) 100%)',
+    boardBg: 'radial-gradient(ellipse at 50% 40%, #581c68 0%, #3b1048 70%, #260830 100%)',
+    boardFrameBg: 'linear-gradient(180deg, #991b1b 0%, #7f1d1d 55%, #450a0a 100%)',
+    boardFrameBorder: '#fbbf24',
+    boardInnerStroke: '#f472b6',
+    boardGlow: 'rgba(232, 121, 249, 0.30)',
+    headerBg: 'bg-[#fae8ff] border-[#7e22ce] shadow-[0_8px_0_#581c87]',
+    headerTitle: 'text-[#581c87]',
+    headerSub: 'text-[#7e22ce]',
+    podiumHeader: 'bg-[#6b21a8] text-[#fae8ff]',
+    podiumBody: 'bg-[#fdf4ff]/95 border border-[#d946ef]',
+    hintPill: 'bg-[#581c87]/88 text-[#fae8ff]',
+    nametagBorder: 'border-[2px] border-[#9333ea] bg-[#fdf4ff]/95',
+    ambient: 'radial-gradient(circle at 58% 28%, rgba(217, 70, 239, 0.18), transparent 68%)',
+    thayFilter: 'hue-rotate(48deg) saturate(1.3)',
+    thayBadge: 'from-[#a855f7] to-[#6b21a8] shadow-[0_3px_0_#4c1d95]',
+    thayIcon: '🔥',
+  },
+  {
+    badge: '👑 TÚ TÀI · VỀ ĐÍCH',
+    roomFilter: 'saturate(1.25) contrast(1.06) brightness(1.02)',
+    floorOverlay: 'linear-gradient(180deg, rgba(127, 29, 29, 0.05) 0%, rgba(127, 29, 29, 0.28) 50%, rgba(69, 10, 10, 0.44) 100%)',
+    boardBg: 'radial-gradient(ellipse at 50% 40%, #7f1d1d 0%, #551111 68%, #380808 100%)',
+    boardFrameBg: 'linear-gradient(180deg, #fde047 0%, #f59e0b 48%, #b45309 100%)',
+    boardFrameBorder: '#78350f',
+    boardInnerStroke: '#fef08a',
+    boardGlow: 'rgba(251, 191, 36, 0.42)',
+    headerBg: 'bg-gradient-to-b from-[#fef08a] to-[#fde047] border-[#b45309] shadow-[0_8px_0_#78350f]',
+    headerTitle: 'text-[#7c2d12]',
+    headerSub: 'text-[#92400e]',
+    podiumHeader: 'bg-gradient-to-r from-[#991b1b] via-[#b91c1c] to-[#991b1b] text-[#fef08a]',
+    podiumBody: 'bg-[#fffbeb]/95 border-2 border-[#f59e0b]',
+    hintPill: 'bg-[#7c2d12]/90 text-[#fef08a] border border-[#fbbf24]/60',
+    nametagBorder: 'border-[2px] border-[#f59e0b] bg-[#fffbeb]/95 shadow-[0_0_8px_rgba(251,191,36,0.45)]',
+    ambient: 'radial-gradient(circle at 55% 30%, rgba(251, 191, 36, 0.26), transparent 72%)',
+    thayFilter: 'hue-rotate(140deg) saturate(1.35) brightness(1.04)',
+    thayBadge: 'from-[#f59e0b] to-[#b45309] shadow-[0_3px_0_#78350f]',
+    thayIcon: '👑',
+  },
+] as const;
+
+function StageBackdrop({ v }: { v: StageView }) {
+  if (v.phase === 'show' || v.phase === 'recess') return null;
+  const idx = stageIdxOf(v);
+  const t = STAGE_THEMES[idx];
+  return (
+    <>
+      {/* 1. Nền phòng học biến đổi màu sắc & ánh sáng theo từng cấp học (nếu không dùng ảnh nền riêng) */}
+      {!v.cfg.bg && idx > 0 && (
+        <img
+          src="/assets/bg/lop.webp"
+          alt=""
+          className="pointer-events-none absolute inset-0 h-full w-full object-cover transition-all duration-700"
+          style={{ filter: t.roomFilter }}
+        />
+      )}
+      {/* Phủ màu sàn và ánh sáng môi trường của từng vòng */}
+      <div className="pointer-events-none absolute inset-x-0 bottom-0 top-[600px] transition-all duration-700" style={{ background: t.floorOverlay }} />
+      {t.ambient && <div className="pointer-events-none absolute inset-0 transition-all duration-700" style={{ background: t.ambient }} />}
+
+      {/* 2. Kiến trúc trang trí phòng học riêng cho từng Cấp (Cờ dây Cấp 2, Rèm nhung & Thảm Hội trường Cấp 3, Đèn Spotlight & Rèm Hoàng Gia Kỳ 4) */}
+      <svg className="pointer-events-none absolute inset-0 h-full w-full" viewBox="0 0 1080 1920">
+        {idx === 1 && (
+          <g opacity="0.9">
+            {/* Dây cờ tam giác năng động treo trần lớp Cấp 2 */}
+            <path d="M 0,68 Q 270,130 540,78 Q 810,130 1080,68" stroke="#0284c7" strokeWidth="3" fill="none" />
+            {[40, 110, 180, 250, 320, 760, 830, 900, 970, 1035].map((cx, i) => {
+              const colors = ['#38bdf8', '#facc15', '#4ade80', '#f472b6', '#fb923c'];
+              const cy = cx < 540 ? 74 + Math.sin((cx / 540) * Math.PI) * 32 : 74 + Math.sin(((cx - 540) / 540) * Math.PI) * 32;
+              return <polygon key={i} points={`${cx - 22},${cy} ${cx + 22},${cy} ${cx},${cy + 42}`} fill={colors[i % colors.length]} stroke="#fff" strokeWidth="2" />;
+            })}
+          </g>
+        )}
+
+        {idx === 2 && (
+          <g>
+            {/* Thảm lụa tím-đỏ trải dọc lối đi Hội Trường THPT */}
+            <polygon points="360,760 720,760 920,1920 160,1920" fill="url(#hallCarpet2)" opacity="0.26" />
+            <defs>
+              <linearGradient id="hallCarpet2" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor="#9333ea" />
+                <stop offset="100%" stopColor="#4c1d95" />
+              </linearGradient>
+            </defs>
+            {/* Rèm nhung Hội trường THPT 2 bên mép tường */}
+            <path d="M 0,0 L 95,0 Q 75,320 52,620 L 0,660 Z" fill="#6b21a8" opacity="0.78" />
+            <path d="M 0,0 L 65,0 Q 50,300 32,600 L 0,630 Z" fill="#9333ea" opacity="0.65" />
+            <path d="M 1080,0 L 985,0 Q 1005,320 1028,620 L 1080,660 Z" fill="#6b21a8" opacity="0.78" />
+            <path d="M 1080,0 L 1015,0 Q 1030,300 1048,600 L 1080,630 Z" fill="#9333ea" opacity="0.65" />
+            {/* Viền tua rua vàng trên trần */}
+            <path d="M 0,0 Q 140,70 280,0 M 800,0 Q 940,70 1080,0" fill="#581c87" stroke="#fbbf24" strokeWidth="5" opacity="0.85" />
+          </g>
+        )}
+
+        {idx === 3 && (
+          <g>
+            <defs>
+              <linearGradient id="spotBeam" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor="#fef08a" stopOpacity="0.38" />
+                <stop offset="70%" stopColor="#f59e0b" stopOpacity="0.10" />
+                <stop offset="100%" stopColor="#f59e0b" stopOpacity="0" />
+              </linearGradient>
+              <linearGradient id="royalCarpet" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor="#dc2626" />
+                <stop offset="100%" stopColor="#7f1d1d" />
+              </linearGradient>
+            </defs>
+            {/* 3 Luồng đèn Spotlight Đấu Trường Chung Kết chiếu rực xuống Bảng & Bục Giảng */}
+            <polygon points="220,0 310,0 520,760 90,760" fill="url(#spotBeam)" />
+            <polygon points="500,0 590,0 790,760 320,760" fill="url(#spotBeam)" />
+            <polygon points="780,0 870,0 1040,760 580,760" fill="url(#spotBeam)" />
+            {/* Thảm đỏ Hoàng Gia viền vàng */}
+            <polygon points="330,755 750,755 960,1920 120,1920" fill="url(#royalCarpet)" opacity="0.34" />
+            <line x1="330" y1="755" x2="120" y2="1920" stroke="#fbbf24" strokeWidth="4" opacity="0.45" />
+            <line x1="750" y1="755" x2="960" y2="1920" stroke="#fbbf24" strokeWidth="4" opacity="0.45" />
+            {/* Rèm nhung Đỏ Hoàng Gia viền Vàng Kim hai bên */}
+            <path d="M 0,0 L 118,0 Q 92,340 64,680 L 0,720 Z" fill="#991b1b" stroke="#fbbf24" strokeWidth="4" opacity="0.9" />
+            <path d="M 0,0 L 76,0 Q 58,320 36,640 L 0,680 Z" fill="#dc2626" opacity="0.75" />
+            <path d="M 1080,0 L 962,0 Q 988,340 1016,680 L 1080,720 Z" fill="#991b1b" stroke="#fbbf24" strokeWidth="4" opacity="0.9" />
+            <path d="M 1080,0 L 1004,0 Q 1022,320 1044,640 L 1080,680 Z" fill="#dc2626" opacity="0.75" />
+            {/* Diềm nhung vàng-đỏ trên đỉnh sân khấu */}
+            <path d="M 0,0 Q 135,88 270,0 Q 405,64 540,0 Q 675,64 810,0 Q 945,88 1080,0 Z" fill="#991b1b" stroke="#fde047" strokeWidth="5" opacity="0.92" />
+          </g>
+        )}
+      </svg>
+
+      {/* 3. Khung bảng & Mặt bảng biến hình theo 4 Cấp (giữ đúng toạ độ pixel left:332 top:244 w:592 h:384) */}
+      <div
+        className="pointer-events-none absolute left-[332px] top-[244px] h-[384px] w-[592px] rounded-[12px] transition-all duration-700"
+        style={{
+          background: t.boardFrameBg,
+          border: `4px solid ${t.boardFrameBorder}`,
+          boxShadow: `0 10px 24px rgba(0,0,0,0.45), 0 0 28px ${t.boardGlow}`,
+        }}
+      >
+        {/* Lòng bảng (nơi hiện chữ phấn ở left:350 top:262 w:555 h:348) */}
+        <div
+          className="absolute inset-[10px] rounded-[7px] transition-all duration-700"
+          style={{
+            background: t.boardBg,
+            border: `2.5px solid ${t.boardInnerStroke}`,
+            boxShadow: 'inset 0 0 32px rgba(0,0,0,0.48)',
+          }}
+        />
+
+        {/* Chi tiết trang trí góc bảng & khay phấn theo từng vòng */}
+        {idx === 0 && (
+          <>
+            {/* Khay gỗ đựng phấn trắng/vàng/hồng truyền thống Cấp 1 */}
+            <div className="absolute -bottom-[10px] left-[28px] right-[28px] h-[12px] rounded-b-[6px] border-2 border-[#47270b] bg-[#8c5320] shadow-md" />
+            <div className="absolute bottom-[2px] left-[120px] h-[6px] w-[26px] rounded-full bg-white shadow-sm" />
+            <div className="absolute bottom-[2px] left-[154px] h-[6px] w-[22px] rounded-full bg-[#fde047] shadow-sm" />
+            <div className="absolute bottom-[2px] left-[290px] h-[10px] w-[42px] rounded-[3px] border border-[#47270b] bg-[#d97706]" />
+          </>
+        )}
+
+        {idx === 1 && (
+          <>
+            {/* 4 Góc bọc thép hợp kim xanh & khay bút dạ từ tính Cấp 2 */}
+            <div className="absolute -left-[3px] -top-[3px] h-[22px] w-[22px] rounded-tl-[10px] border-l-4 border-t-4 border-[#0284c7]" />
+            <div className="absolute -right-[3px] -top-[3px] h-[22px] w-[22px] rounded-tr-[10px] border-r-4 border-t-4 border-[#0284c7]" />
+            <div className="absolute -bottom-[3px] -left-[3px] h-[22px] w-[22px] rounded-bl-[10px] border-b-4 border-l-4 border-[#0284c7]" />
+            <div className="absolute -bottom-[3px] -right-[3px] h-[22px] w-[22px] rounded-br-[10px] border-b-4 border-r-4 border-[#0284c7]" />
+            <div className="absolute -bottom-[9px] left-[40px] right-[40px] h-[10px] rounded-b-[5px] border border-[#334155] bg-gradient-to-r from-[#cbd5e1] via-[#f8fafc] to-[#cbd5e1]" />
+            {/* Nam châm tròn đính góc bảng từ */}
+            <div className="absolute left-[22px] top-[20px] h-[14px] w-[14px] rounded-full border-2 border-white bg-[#ef4444] shadow" />
+            <div className="absolute right-[22px] top-[20px] h-[14px] w-[14px] rounded-full border-2 border-white bg-[#38bdf8] shadow" />
+          </>
+        )}
+
+        {idx === 2 && (
+          <>
+            {/* Hoa văn đồng mạ vàng 4 góc bảng Hội trường Cấp 3 */}
+            <div className="absolute left-[4px] top-[4px] h-[20px] w-[20px] border-l-[4px] border-t-[4px] border-[#fde047]" />
+            <div className="absolute right-[4px] top-[4px] h-[20px] w-[20px] border-r-[4px] border-t-[4px] border-[#fde047]" />
+            <div className="absolute bottom-[4px] left-[4px] h-[20px] w-[20px] border-b-[4px] border-l-[4px] border-[#fde047]" />
+            <div className="absolute bottom-[4px] right-[4px] h-[20px] w-[20px] border-b-[4px] border-r-[4px] border-[#fde047]" />
+            <div className="absolute -top-[14px] left-1/2 -translate-x-1/2 rounded-full border-2 border-[#fde047] bg-[#581c87] px-4 py-[1px] text-[13px] font-black tracking-widest text-[#fde047] shadow">
+              ★ BẢNG DANH DỰ THPT ★
+            </div>
+          </>
+        )}
+
+        {idx === 3 && (
+          <>
+            {/* Phù điêu Vương Miện Vinh Quang trên đỉnh Bảng Đấu Trường Tú Tài */}
+            <div className="absolute -top-[18px] left-1/2 flex -translate-x-1/2 items-center gap-1.5 rounded-full border-[3px] border-[#fde047] bg-gradient-to-r from-[#7f1d1d] via-[#b91c1c] to-[#7f1d1d] px-5 py-[2px] text-[14px] font-black tracking-wider text-[#fef08a] shadow-[0_4px_12px_rgba(0,0,0,0.5)]">
+              <span>👑</span>
+              <span>ĐẤU TRƯỜNG TÚ TÀI</span>
+              <span>👑</span>
+            </div>
+            <div className="absolute left-[4px] top-[4px] h-[24px] w-[24px] rounded-tl-[6px] border-l-[5px] border-t-[5px] border-[#7f1d1d]" />
+            <div className="absolute right-[4px] top-[4px] h-[24px] w-[24px] rounded-tr-[6px] border-r-[5px] border-t-[5px] border-[#7f1d1d]" />
+            <div className="absolute bottom-[4px] left-[4px] h-[24px] w-[24px] rounded-bl-[6px] border-b-[5px] border-l-[5px] border-[#7f1d1d]" />
+            <div className="absolute bottom-[4px] right-[4px] h-[24px] w-[24px] rounded-br-[6px] border-b-[5px] border-r-[5px] border-[#7f1d1d]" />
+          </>
+        )}
+      </div>
+    </>
+  );
+}
+
 function Header({ v, name }: { v: StageView; name: string }) {
+  const idx = stageIdxOf(v);
+  const t = STAGE_THEMES[idx];
   const sub =
     v.phase === 'team'
       ? `Chọn tổ · Tiết ${v.round}`
@@ -272,15 +531,15 @@ function Header({ v, name }: { v: StageView; name: string }) {
       : v.phase === 'vote'
         ? 'Chọn chủ đề tiết sau'
         : v.qNo > 0 && v.phase !== 'results'
-          ? `${v.review ? 'Ôn bài' : `Tiết ${v.round}`} · Câu ${v.qNo}/${v.total}`
+          ? `${t.badge} · Câu ${v.qNo}/${v.total}`
           : `Tiết ${v.round}`;
   return (
-    <div className="absolute left-1/2 top-[14px] flex w-[470px] -translate-x-1/2 flex-col items-center rounded-[28px] border-[5px] border-[#7a4a1d] bg-[#f6e3b4] px-6 py-3 shadow-[0_8px_0_#5b3512]">
-      <div className="max-w-full truncate font-extrabold leading-none tracking-wide text-[#7a2e0e]" style={{ fontSize: name.length > 14 ? 34 : 46 }}>
+    <div className={`absolute left-1/2 top-[14px] flex w-[520px] -translate-x-1/2 flex-col items-center rounded-[28px] border-[5px] px-6 py-3 transition-colors duration-500 ${t.headerBg}`}>
+      <div className={`max-w-full truncate font-extrabold leading-none tracking-wide ${t.headerTitle}`} style={{ fontSize: name.length > 14 ? 34 : 46 }}>
         {name.toUpperCase()}
       </div>
       {/* sĩ số trong lớp / số bạn đang chờ vào (chỗ bảng sĩ số cũ ở cửa trái giờ là bàn quà của cô) */}
-      <div className="mt-1 whitespace-nowrap text-[24px] font-semibold text-[#6b4a22]">
+      <div className={`mt-1 whitespace-nowrap text-[22px] font-bold ${t.headerSub}`}>
         {sub} · 👥 {v.roster.seated}/{v.roster.seats}
         {v.roster.waiting > 0 && ` · ⏳ chờ ${v.roster.waiting}`}
       </div>
@@ -1068,6 +1327,8 @@ function DayTop({ v }: { v: StageView }) {
 
 // ---------- Cô giáo (cô Ngân, bản riêng: 16 tư thế, ảnh gốc trong nhan-vat/co-giao-ngan, tách nền ra public/assets/nv/co-ngan) ----------
 function teacherPose(v: StageView, now: number): string {
+  // đang bật thông báo tan trường / tắt live: cô đứng vẫy tay chào tạm biệt xen kẽ thả tim vui vẻ
+  if (v.goodbye) return now % 3000 < 1800 ? '04-vay-chao' : '07-tay-nguc';
   // có bạn cầm hoa đi lên: ngạc nhiên, tới bục đưa hoa thì cười che miệng
   if (v.walk) return now - v.walk.at < GAME.walkMs * 0.35 ? '13-ngac-nhien' : '06-cuoi';
   if (now - v.lastFlowerAt < 3000) return '06-cuoi'; // được tặng hoa
@@ -1179,14 +1440,19 @@ function Teacher({ v, now }: { v: StageView; now: number }) {
   );
 }
 
-/** Thầy giáo đứng lớp: cùng chỗ đứng với cô, bảng tên xanh */
+/** Thầy giáo đứng lớp: cùng chỗ đứng với cô, đổi tông vest & huy hiệu bảng tên theo từng Kỳ thi (Cấp 1 -> Cấp 2 -> Cấp 3 -> Tú Tài) */
 function TeacherThay({ v, now, gotFlower }: { v: StageView; now: number; gotFlower: boolean }) {
   const pose = v.show ? thayShowPose(v, now) : (THAY_POSE[teacherPose(v, now)] ?? '01-dung');
+  const t = STAGE_THEMES[stageIdxOf(v)];
   return (
     <div className="absolute left-[86px] top-[410px] h-[490px] w-[320px]">
-      <img src={`/assets/nv/thay/${pose}.webp`} className="h-full w-full object-contain object-bottom drop-shadow-[0_10px_8px_rgba(0,0,0,0.25)]" />
-      <div className="absolute left-1/2 top-[118px] z-10 -translate-x-1/2 -rotate-3 whitespace-nowrap rounded-full border-[3px] border-[#fff6dd] bg-gradient-to-b from-[#3b82f6] to-[#1d4ed8] px-3 py-[1px] text-[22px] font-extrabold text-white shadow-[0_3px_0_#1e3a8a]">
-        📘 {shownTeacherName(v.cfg)}
+      <img
+        src={`/assets/nv/thay/${pose}.webp`}
+        className="h-full w-full object-contain object-bottom drop-shadow-[0_10px_8px_rgba(0,0,0,0.25)] transition-[filter] duration-500"
+        style={t.thayFilter ? { filter: t.thayFilter } : undefined}
+      />
+      <div className={`absolute left-1/2 top-[118px] z-10 -translate-x-1/2 -rotate-3 whitespace-nowrap rounded-full border-[3px] border-[#fff6dd] bg-gradient-to-b px-3 py-[1px] text-[22px] font-extrabold text-white transition-all duration-500 ${t.thayBadge}`}>
+        {t.thayIcon} {shownTeacherName(v.cfg)}
       </div>
       <AnimatePresence>
         {gotFlower && (
@@ -1214,8 +1480,8 @@ function GiamThi({ h }: { h: number }) {
         className="h-full w-full object-contain object-bottom drop-shadow-[0_6px_5px_rgba(0,0,0,0.35)]"
         style={own ? undefined : { filter: 'hue-rotate(185deg) saturate(1.6) brightness(0.92)' }}
       />
-      <div className="absolute left-1/2 top-[26%] -translate-x-1/2 -rotate-6 whitespace-nowrap rounded-md border-2 border-white bg-[#dc2626] px-2 text-[17px] font-extrabold text-white shadow">
-        👮 GIÁM THỊ
+      <div className="absolute left-1/2 top-[26%] -translate-x-1/2 -rotate-6 whitespace-nowrap rounded-md border-2 border-white bg-[#2563eb] px-2 text-[17px] font-extrabold text-white shadow">
+        📋 QUẢN LỚP
       </div>
     </div>
   );
@@ -1422,13 +1688,14 @@ function Podium({ v }: { v: StageView }) {
   if (v.phase === 'show' && v.show) return v.show.kind === 'everest' ? <Mountain v={v} /> : <BellBoard v={v} />;
   if (v.phase === 'reveal') return <FastestBoard v={v} />;
   if (v.phase !== 'question' && v.phase !== 'bonus') return null;
+  const t = STAGE_THEMES[stageIdxOf(v)];
   return (
     <div className="absolute left-[417px] top-[634px] w-[420px]">
-      <div className="flex items-center justify-between rounded-t-[14px] bg-[#7a2e0e] px-3 py-[1px] text-[19px] font-bold text-[#ffe9b8]">
+      <div className={`flex items-center justify-between rounded-t-[14px] px-3 py-[1px] text-[19px] font-bold transition-colors duration-500 ${t.podiumHeader}`}>
         <span>⚡ Nhanh nhất</span>
         <span>{v.correctCount} bạn đã đúng</span>
       </div>
-      <div className="flex h-[48px] items-center gap-1 rounded-b-[14px] bg-[#fff6dd]/95 px-2 shadow-lg">
+      <div className={`flex h-[48px] items-center gap-1 rounded-b-[14px] px-2 shadow-lg transition-colors duration-500 ${t.podiumBody}`}>
         {v.correctTop.length === 0 && <div className="w-full text-center text-[20px] text-[#8a6a3a]">Chưa ai đoán ra…</div>}
         <AnimatePresence initial={false}>
           {v.correctTop.map((a, i) => (
@@ -1477,6 +1744,7 @@ function SeatHint({ now, asking }: { now: number; asking: boolean }) {
 
 // ---------- Học sinh ----------
 function studentPose(s: StageView['seats'][number], v: StageView, rank: number, now: number): PoseKey {
+  if (v.goodbye) return (rank + Math.floor(now / 1200)) % 2 === 0 ? 'chao' : 'vui';
   if (v.clapping) return 'vui';
   if (now - s.joinedAt < 3000) return 'chao';
   const asking = v.phase === 'question' || v.phase === 'bonus';
@@ -1510,33 +1778,173 @@ function seatBox(i: number) {
   return { scale, w, h, show, x, y, ri, k, gap: ((row.x2 - row.x1) * K) / Math.max(1, row.n) };
 }
 
-/** Bàn dài + ghế băng của 1 dãy (che hẳn dãy bàn lẻ vẽ sẵn trong ảnh nền) */
-function LongDesk({ ri }: { ri: number }) {
+// Bảng màu & kiểu dáng Bàn Ghế cho 4 Kỳ Thi (giữ nguyên 100% toạ độ ROWS)
+const DESK_STYLES = [
+  // Kỳ 1 (Cấp 1): Bàn gỗ thông vàng ấm truyền thống
+  {
+    shadow: '#9c5a2c',
+    leg: '#70411b',
+    frontPanel: '#965c22',
+    topFace: '#cf9a4c',
+    frontEdge: '#b5772f',
+    benchLeg: '#5f3816',
+    benchTop: '#c68a3c',
+    benchEdge: '#a5692b',
+    stroke: '#57320f',
+    trim: '',
+  },
+  // Kỳ 2 (Cấp 2): Bàn gỗ sồi sáng hiện đại + khung thép sơn tĩnh điện xanh Navy
+  {
+    shadow: '#1e3a5f',
+    leg: '#1e293b',
+    frontPanel: '#0f3460',
+    topFace: '#e5c185',
+    frontEdge: '#0284c7',
+    benchLeg: '#1e293b',
+    benchTop: '#d8ad68',
+    benchEdge: '#0369a1',
+    stroke: '#0f172a',
+    trim: '#38bdf8',
+  },
+  // Kỳ 3 (Cấp 3): Bàn gỗ Gụ / Cẩm Lai đỏ trầm Hội trường THPT viền chỉ vàng đồng
+  {
+    shadow: '#4a1228',
+    leg: '#3b0a1e',
+    frontPanel: '#6b1426',
+    topFace: '#a82838',
+    frontEdge: '#801826',
+    benchLeg: '#3b0a1e',
+    benchTop: '#962232',
+    benchEdge: '#6b1426',
+    stroke: '#2d0614',
+    trim: '#f59e0b',
+  },
+  // Kỳ 4 (Đấu Trường Tú Tài): Bàn Đấu Trường Vinh Quang phủ khăn nhung đỏ thẫm nẹp Vàng Kim Hoàng Gia
+  {
+    shadow: '#550c0c',
+    leg: '#78350f',
+    frontPanel: '#991b1b',
+    topFace: '#dc2626',
+    frontEdge: '#fbbf24',
+    benchLeg: '#78350f',
+    benchTop: '#b91c1c',
+    benchEdge: '#f59e0b',
+    stroke: '#450a0a',
+    trim: '#fef08a',
+  },
+] as const;
+
+/** Bàn dài + ghế băng của 1 dãy (che hẳn dãy bàn lẻ vẽ sẵn trong ảnh nền, biến hình theo 4 Cấp học) */
+function LongDesk({ ri, stageIdx = 0 }: { ri: number; stageIdx?: 0 | 1 | 2 | 3 }) {
   const r = ROWS[ri];
   const h = r.b - r.y;
   const [x1, x2] = [r.x1 - 6, r.x2 + 6];
   const Y = (f: number) => r.y + f * h;
   const nLegs = Math.max(2, Math.floor((r.n || 8) / 2) + 1);
   const legs = Array.from({ length: nLegs }, (_, j) => x1 + 22 + (j * (x2 - x1 - 44)) / (nLegs - 1));
-  // màu gỗ hạ vài tông so với bản đầu (chủ kênh chỉnh 2026-11-04: bàn sáng quá, tên và quà trên bàn khó nhìn)
-  const line = { stroke: '#57320f', strokeWidth: 3, strokeLinejoin: 'round' as const };
+  const d = DESK_STYLES[stageIdx];
+  const line = { stroke: d.stroke, strokeWidth: 3, strokeLinejoin: 'round' as const };
+  const midX = (x1 + x2) / 2;
+
   return (
     <svg className="pointer-events-none absolute left-0 top-0" width={1080} height={1920} viewBox="0 0 941 1672" style={{ zIndex: 9 + ri }}>
       {/* bóng dưới bàn ghế: che chân bàn lẻ trong ảnh nền */}
-      <rect x={x1 - 2} y={Y(0.5)} width={x2 - x1 + 4} height={h * 0.52} rx={10} fill="#9c5a2c" />
+      <rect x={x1 - 2} y={Y(0.5)} width={x2 - x1 + 4} height={h * 0.52} rx={10} fill={d.shadow} />
       {/* chân bàn 2 đầu */}
-      <rect x={x1 + 6} y={Y(0.34)} width={14} height={h * 0.62} fill="#70411b" {...line} />
-      <rect x={x2 - 20} y={Y(0.34)} width={14} height={h * 0.62} fill="#70411b" {...line} />
+      <rect x={x1 + 6} y={Y(0.34)} width={14} height={h * 0.62} fill={d.leg} {...line} />
+      <rect x={x2 - 20} y={Y(0.34)} width={14} height={h * 0.62} fill={d.leg} {...line} />
       {/* mặt bàn + cạnh trước + tấm chắn trước bàn */}
-      <rect x={x1 + 14} y={Y(0.36)} width={x2 - x1 - 28} height={h * 0.26} fill="#965c22" {...line} />
-      <polygon points={`${x1 + 8},${r.y} ${x2 - 8},${r.y} ${x2},${Y(0.28)} ${x1},${Y(0.28)}`} fill="#cf9a4c" {...line} />
-      <rect x={x1} y={Y(0.28)} width={x2 - x1} height={h * 0.08} fill="#b5772f" {...line} />
+      <rect x={x1 + 14} y={Y(0.36)} width={x2 - x1 - 28} height={h * 0.26} fill={d.frontPanel} {...line} />
+      <polygon points={`${x1 + 8},${r.y} ${x2 - 8},${r.y} ${x2},${Y(0.28)} ${x1},${Y(0.28)}`} fill={d.topFace} {...line} />
+      <rect x={x1} y={Y(0.28)} width={x2 - x1} height={h * 0.08} fill={d.frontEdge} {...line} />
+
+      {/* Hoạ tiết trang trí đặc trưng trên yếm bàn của Cấp 2, Cấp 3, Kỳ 4 */}
+      {stageIdx === 1 && (
+        <>
+          {/* Thanh giằng hợp kim xanh sáng chạy ngang yếm bàn Cấp 2 */}
+          <line x1={x1 + 26} y1={Y(0.48)} x2={x2 - 26} y2={Y(0.48)} stroke={d.trim} strokeWidth={3} strokeDasharray="18 8" opacity="0.85" />
+        </>
+      )}
+      {stageIdx === 2 && (
+        <>
+          {/* Khung viền chỉ vàng đồng sang trọng trên yếm bàn gỗ Gụ Cấp 3 */}
+          <rect
+            x={x1 + 24}
+            y={Y(0.39)}
+            width={x2 - x1 - 48}
+            height={h * 0.19}
+            rx={3}
+            fill="none"
+            stroke={d.trim}
+            strokeWidth={2.2}
+            opacity="0.88"
+          />
+        </>
+      )}
+      {stageIdx === 3 && (
+        <>
+          {/* Diềm khăn nhung đỏ viền tua rua Vàng Kim + Ngôi sao Vinh Quang chính giữa bàn Kỳ 4 */}
+          <rect
+            x={x1 + 20}
+            y={Y(0.38)}
+            width={x2 - x1 - 40}
+            height={h * 0.21}
+            rx={4}
+            fill="#7f1d1d"
+            stroke="#fde047"
+            strokeWidth={2.8}
+          />
+          <line x1={x1 + 28} y1={Y(0.56)} x2={x2 - 28} y2={Y(0.56)} stroke="#fbbf24" strokeWidth={2.5} strokeDasharray="6 6" />
+          <circle cx={midX} cy={Y(0.48)} r={h * 0.08} fill="#fbbf24" stroke="#78350f" strokeWidth={1.8} />
+        </>
+      )}
+
       {/* ghế băng */}
       {legs.map((lx) => (
-        <rect key={lx} x={lx - 5} y={Y(0.74)} width={10} height={h * 0.24} fill="#5f3816" />
+        <rect key={lx} x={lx - 5} y={Y(0.74)} width={10} height={h * 0.24} fill={d.benchLeg} />
       ))}
-      <rect x={x1 + 16} y={Y(0.6)} width={x2 - x1 - 32} height={h * 0.1} rx={4} fill="#c68a3c" {...line} />
-      <rect x={x1 + 16} y={Y(0.7)} width={x2 - x1 - 32} height={h * 0.06} fill="#a5692b" {...line} />
+      <rect x={x1 + 16} y={Y(0.6)} width={x2 - x1 - 32} height={h * 0.1} rx={4} fill={d.benchTop} {...line} />
+      <rect x={x1 + 16} y={Y(0.7)} width={x2 - x1 - 32} height={h * 0.06} fill={d.benchEdge} {...line} />
+    </svg>
+  );
+}
+
+/** Phụ kiện đồng phục nhìn từ sau lưng theo từng Cấp học (vẽ đè lên vai áo sơ mi trắng của học sinh) */
+function StudentUniformBack({ stageIdx }: { stageIdx: 0 | 1 | 2 | 3 }) {
+  return (
+    <svg viewBox="0 0 100 100" preserveAspectRatio="none" className="pointer-events-none absolute inset-0 h-full w-full">
+      {stageIdx === 0 && (
+        /* Kỳ 1 (Cấp 1 - Tiểu học): Khăn quàng đỏ Đội viên vắt qua vai áo trắng */
+        <g>
+          <polygon points="24,55 76,55 50,86" fill="#ef4444" stroke="#991b1b" strokeWidth="1.8" strokeLinejoin="round" />
+          <polygon points="29,56 71,56 50,80" fill="#dc2626" />
+          <circle cx="50" cy="57" r="4" fill="#b91c1c" stroke="#fef08a" strokeWidth="1" />
+        </g>
+      )}
+      {stageIdx === 1 && (
+        /* Kỳ 2 (Cấp 2 - THCS): Cổ áo thuỷ thủ / Đoàn Đội viền xanh dương + cầu vai xanh */
+        <g>
+          <polygon points="23,55 77,55 70,73 30,73" fill="#0284c7" stroke="#0c4a6e" strokeWidth="1.6" strokeLinejoin="round" />
+          <line x1="27" y1="68" x2="73" y2="68" stroke="#e0f2fe" strokeWidth="2" />
+          <rect x="18" y="54" width="11" height="5" rx="2" fill="#0369a1" stroke="#e0f2fe" strokeWidth="1" />
+          <rect x="71" y="54" width="11" height="5" rx="2" fill="#0369a1" stroke="#e0f2fe" strokeWidth="1" />
+        </g>
+      )}
+      {stageIdx === 2 && (
+        /* Kỳ 3 (Cấp 3 - THPT): Cổ áo danh dự Tím - Vàng trường Chuyên */
+        <g>
+          <polygon points="22,55 78,55 68,75 32,75" fill="#6b21a8" stroke="#fbbf24" strokeWidth="1.8" strokeLinejoin="round" />
+          <circle cx="50" cy="65" r="4.5" fill="#fde047" stroke="#581c87" strokeWidth="1.2" />
+        </g>
+      )}
+      {stageIdx === 3 && (
+        /* Kỳ 4 (Đấu Trường Tú Tài): Áo choàng Vinh Quang Đỏ Hoàng Gia viền Vàng Kim vắt ngang vai */
+        <g>
+          <path d="M 18,54 Q 50,62 82,54 L 85,96 Q 50,90 15,96 Z" fill="#b91c1c" stroke="#fde047" strokeWidth="2.2" strokeLinejoin="round" />
+          <path d="M 22,55 Q 50,63 78,55 L 74,70 Q 50,65 26,70 Z" fill="#7f1d1d" stroke="#fbbf24" strokeWidth="1.6" />
+          <circle cx="50" cy="61" r="5" fill="#fde047" stroke="#78350f" strokeWidth="1.4" />
+        </g>
+      )}
     </svg>
   );
 }
@@ -1545,10 +1953,12 @@ function Students({ v, now }: { v: StageView; now: number }) {
   const asking = v.phase === 'question' || v.phase === 'bonus';
   const first = asking ? v.correctTop[0]?.username : undefined;
   const dancing = new Set(dancersOf(v).map((s) => s.username));
+  const stageIdx = stageIdxOf(v);
+  const theme = STAGE_THEMES[stageIdx];
   return (
     <>
       {ROWS.map((_, ri) => (
-        <LongDesk key={ri} ri={ri} />
+        <LongDesk key={ri} ri={ri} stageIdx={stageIdx} />
       ))}
       {v.seats.map((s, i) => {
         const { scale, w, h, show, x, y, ri, k, gap } = seatBox(i);
@@ -1574,8 +1984,9 @@ function Students({ v, now }: { v: StageView; now: number }) {
           >
             <div className="absolute inset-0 overflow-hidden">
               <img src={`/assets/nv/${g}/sau-${POSE[g][pose]}.webp`} style={{ width: w, height: h }} className="max-w-none" />
+              <StudentUniformBack stageIdx={stageIdx} />
               <div className="absolute" style={{ left: hd.x * w, top: hd.y * h, width: hd.w * w, height: hd.h * h }}>
-                <Hair username={s.username} girl={s.girl} />
+                <Hair username={s.username} girl={s.girl} stageIdx={stageIdx} rank={i} />
               </div>
             </div>
             {s.answered === 'right' && <div className="badge bg-[#16a34a]">✓</div>}
@@ -1604,7 +2015,10 @@ function Students({ v, now }: { v: StageView; now: number }) {
               </motion.div>
             )}
             {s.bubble && <ChatBubble text={s.bubble} scale={scale} />}
-            <div className="nametag" style={{ ...edgeTag(k, ROWS[ri].n), fontSize: 19 * scale, maxWidth: 2 * gap - 8, bottom: low ? `calc(100% - ${4 + 27 * scale}px)` : undefined, zIndex: low ? 2 : 1 }}>
+            <div
+              className={`nametag ${theme.nametagBorder}`}
+              style={{ ...edgeTag(k, ROWS[ri].n), fontSize: 19 * scale, maxWidth: 2 * gap - 8, bottom: low ? `calc(100% - ${4 + 27 * scale}px)` : undefined, zIndex: low ? 2 : 1 }}
+            >
               {s.team > 0 && (
                 <span className="mr-1 shrink-0 rounded-full px-[5px] font-extrabold text-white" style={{ background: TEAM_COLOR[s.team - 1] }}>
                   {s.team}
@@ -1675,9 +2089,7 @@ function FlowerWalk({ v }: { v: StageView }) {
   );
 }
 
-// Học sinh cá biệt: bị cô phạt đứng cạnh bảng (bên phải), đeo bảng tên đỏ
-// gõ sai: đứng phạt 3 câu ở khoảng sàn trống giữa cô giáo và dãy bàn đầu (chủ kênh khoanh chỗ, 2026-11-05),
-// xếp 1 hàng từ cạnh cô sang phải. Hình phạt (chủ kênh chốt): giơ tay đứng phạt, nhún lên xuống
+// Đội cổ vũ / Trợ giảng cạnh bảng: khi bật công tắc standWrong, bạn trả lời chưa đúng lên đứng cạnh cô vẫy tay cổ vũ cả lớp 3 câu
 const STAND_SPOTS = [420, 492, 564, 636, 708, 780];
 const STAND_FEET = 880;
 function Punished({ v }: { v: StageView }) {
@@ -1686,6 +2098,7 @@ function Punished({ v }: { v: StageView }) {
       {v.punished.slice(0, STAND_SPOTS.length).map((s, i) => {
         const H = 120;
         const g = s.girl ? 'nu' : 'nam';
+        const pose = i % 2 === 0 ? 'chao' : 'vui';
         return (
           <motion.div
             key={s.username}
@@ -1695,13 +2108,12 @@ function Punished({ v }: { v: StageView }) {
             style={{ left: STAND_SPOTS[i] - (H * 0.47) / 2, top: STAND_FEET - H, width: H * 0.47, height: H }}
           >
             <motion.img
-              src={`/assets/nv/${g}/${POSE[g].tay}.webp`}
-              animate={{ y: [0, 10, 0], scaleY: [1, 0.94, 1] }}
-              transition={{ duration: 1.1, repeat: Infinity, ease: 'easeInOut', delay: i * 0.15 }}
+              src={`/assets/nv/${g}/${POSE[g][pose]}.webp`}
+              animate={{ y: [0, -6, 0], rotate: [-4, 4, -4] }}
+              transition={{ duration: 1.2, repeat: Infinity, ease: 'easeInOut', delay: i * 0.15 }}
               style={{ transformOrigin: 'bottom center' }}
               className="h-full w-full drop-shadow-[0_4px_3px_rgba(0,0,0,0.3)]"
             />
-            {/* chỉ hiện tên bạn đang đứng (chủ kênh bỏ chữ "Gõ sai · còn N câu", 2026-11-05) */}
             <div className="nametag" style={{ fontSize: 15, maxWidth: 76 }}>
               <span className="truncate">{s.nickname}</span>
             </div>
@@ -1896,24 +2308,170 @@ function BirthdayBanner({ v }: { v: StageView }) {
   );
 }
 
-// Nút "Chào tạm biệt" ở trang điều khiển (chủ kênh bấm trước khi xuống live): biểu ngữ tan lớp
-function GoodbyeBanner({ v }: { v: StageView }) {
+// Câu chúc vui nhộn kiểu Gen Z / công sở xoay vòng trên bảng Lễ Tan Trường (luôn kèm lời kêu gọi Follow nhận thông báo)
+const GOODBYE_QUOTES = [
+  '🎒 Cất sách vở về ăn ngon ngủ kỹ, nhớ bấm FOLLOW kênh để lần sau nhận thông báo vào lớp nha! 🔔',
+  '💸 Chúc cả lớp ngủ ngon không mơ thấy deadline! Bấm FOLLOW ngay để lần sau có chuông báo vào lớp! ✨',
+  '🪑 Muốn ngồi ghế bàn đầu tiết sau? Bấm FOLLOW kênh liền tay để nhận thông báo ngay khi mở lớp! 💕',
+  '🏆 Cô cho cả lớp 10 điểm tinh thần! Nhớ FOLLOW kênh để lần sau nhận thông báo vào lớp đúng giờ nha! 💯',
+];
+
+// Nút "Chào tạm biệt / Tan trường" ở trang điều khiển (chủ kênh bấm trước khi xuống live): Đại lễ Bế giảng & Tan trường vui nhộn
+function GoodbyeBanner({ v, now }: { v: StageView; now: number }) {
+  const g = v.goodbye;
+  const leftSec = g ? Math.max(0, Math.ceil((g.at + GAME.goodbyeBannerSec * 1000 - now) / 1000)) : 0;
+  const quoteIdx = Math.floor(now / 4500) % GOODBYE_QUOTES.length;
+  // Lấy Top 3 học sinh xuất sắc nhất buổi (ưu tiên sessionTop, nếu chưa có thì lấy theo ghế)
+  const top3 =
+    v.sessionTop && v.sessionTop.length > 0
+      ? v.sessionTop.slice(0, 3).map((s) => ({ nickname: s.nickname, pts: s.session }))
+      : v.seats
+          .filter((s) => s.score > 0)
+          .slice(0, 3)
+          .map((s) => ({ nickname: s.nickname, pts: s.score }));
+
   return (
     <AnimatePresence>
-      {v.goodbye && (
+      {g && (
         <motion.div
-          key={v.goodbye.at}
-          initial={{ opacity: 0, y: -40, scale: 0.7 }}
-          animate={{ opacity: 1, y: 0, scale: 1 }}
-          exit={{ opacity: 0, y: -40 }}
-          transition={{ type: 'spring', stiffness: 200, damping: 14 }}
-          className="absolute left-1/2 top-[620px] z-50 w-[900px] -translate-x-1/2 rounded-[30px] border-4 border-white bg-gradient-to-r from-sky-500 via-indigo-500 to-pink-500 px-6 py-4 text-center font-extrabold text-white shadow-2xl"
+          key={g.at}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          className="pointer-events-none absolute inset-0 z-[65] overflow-hidden"
         >
-          <motion.div animate={{ rotate: [-12, 12, -12] }} transition={{ duration: 1, repeat: Infinity }} className="inline-block text-[64px] leading-none">
-            👋
+          {/* 1. Mưa Pháo Giấy & Icon Tan Trường bay rợp trời */}
+          {Array.from({ length: 18 }, (_, i) => {
+            const icons = ['🎉', '🎒', '🧋', '💖', '✨', '🥳', '🌸', '🏆', '💯'];
+            const left = 40 + ((i * 59) % 1000);
+            const delay = (i % 6) * 0.28;
+            return (
+              <motion.div
+                key={`float-${i}`}
+                initial={{ y: 1750, x: 0, opacity: 0, scale: 0.6, rotate: -20 }}
+                animate={{
+                  y: 180,
+                  x: [0, i % 2 === 0 ? 28 : -28, 0],
+                  opacity: [0, 1, 1, 0],
+                  scale: [0.7, 1.15, 0.9],
+                  rotate: [0, i % 2 === 0 ? 25 : -25, 0],
+                }}
+                transition={{ duration: 3.4 + (i % 3) * 0.4, delay, repeat: Infinity, ease: 'easeOut' }}
+                className="absolute text-[52px] drop-shadow-[0_4px_6px_rgba(0,0,0,0.35)]"
+                style={{ left }}
+              >
+                {icons[i % icons.length]}
+              </motion.div>
+            );
+          })}
+
+          {/* 2. Khung Đại Lễ Tan Trường ở trung tâm màn hình */}
+          <motion.div
+            initial={{ opacity: 0, y: -60, scale: 0.65 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -40, scale: 0.8 }}
+            transition={{ type: 'spring', stiffness: 210, damping: 15 }}
+            className="absolute left-1/2 top-[480px] w-[940px] -translate-x-1/2 rounded-[36px] border-[6px] border-[#fef08a] bg-gradient-to-br from-[#be185d] via-[#7e22ce] to-[#1d4ed8] p-5 text-center text-white shadow-[0_20px_50px_rgba(0,0,0,0.65),0_0_40px_rgba(250,204,21,0.55)]"
+          >
+            {/* Huy hiệu Trống Trường Tan Học trên đỉnh */}
+            <div className="absolute -top-[34px] left-1/2 flex -translate-x-1/2 items-center gap-3 whitespace-nowrap rounded-full border-4 border-white bg-gradient-to-r from-[#f59e0b] via-[#ef4444] to-[#f59e0b] px-7 py-1.5 text-[28px] font-black tracking-wide text-[#fef08a] shadow-[0_6px_16px_rgba(0,0,0,0.45)]">
+              <motion.span
+                animate={{ rotate: [-18, 18, -18], scale: [1, 1.2, 1] }}
+                transition={{ duration: 0.45, repeat: Infinity }}
+                className="inline-block text-[38px]"
+              >
+                🥁
+              </motion.span>
+              <span>TÙNG! TÙNG! TÙNG! TRỐNG TAN TRƯỜNG</span>
+              <span className="rounded-full bg-black/30 px-3 py-0.5 text-[22px] text-white">⏳ {leftSec}s</span>
+            </div>
+
+            {/* Tiêu đề chính + 2 bàn tay vẫy chào */}
+            <div className="mt-4 flex items-center justify-center gap-4">
+              <motion.span
+                animate={{ rotate: [-20, 20, -20], scale: [1, 1.15, 1] }}
+                transition={{ duration: 0.9, repeat: Infinity }}
+                className="inline-block text-[66px] leading-none"
+              >
+                👋
+              </motion.span>
+              <div>
+                <div className="text-[48px] font-black leading-tight text-[#fef08a] drop-shadow-[0_4px_0_rgba(0,0,0,0.45)]">
+                  TAN LỚP RỒI! HẸN GẶP LẠI CẢ LỚP 💕
+                </div>
+                <div className="mt-1 text-[25px] font-bold text-pink-100">
+                  {X('Cô Ngân cảm ơn cả lớp hôm nay đã học và quẩy hết mình!')}
+                </div>
+              </div>
+              <motion.span
+                animate={{ rotate: [20, -20, 20], scale: [1, 1.15, 1] }}
+                transition={{ duration: 0.9, repeat: Infinity }}
+                className="inline-block text-[66px] leading-none"
+              >
+                🎒
+              </motion.span>
+            </div>
+
+            {/* Câu chúc hài hước xoay vòng */}
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={quoteIdx}
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                className="mx-auto mt-3 max-w-[860px] rounded-[20px] border-2 border-white/35 bg-black/25 px-5 py-2.5 text-[27px] font-extrabold text-[#fde047] shadow-inner"
+              >
+                {GOODBYE_QUOTES[quoteIdx]}
+              </motion.div>
+            </AnimatePresence>
+
+            {/* Bảng Vinh Danh Top 3 Hôm Nay + Thống kê nhanh buổi học */}
+            {top3.length > 0 && (
+              <div className="mt-3.5 rounded-[22px] border-2 border-[#fde047]/60 bg-white/15 px-4 py-2.5 backdrop-blur-sm">
+                <div className="text-[22px] font-black uppercase tracking-wider text-[#fef08a]">
+                  👑 BẢNG VÀNG TUYÊN DƯƠNG CUỐI BUỔI 👑
+                </div>
+                <div className="mt-1.5 grid grid-cols-3 gap-3">
+                  {top3.map((st, idx) => (
+                    <div
+                      key={idx}
+                      className={`flex items-center gap-2 rounded-[16px] px-3 py-1.5 text-left shadow-md ${
+                        idx === 0
+                          ? 'border-2 border-[#fde047] bg-gradient-to-r from-amber-500/90 to-yellow-500/90 text-[#451a03]'
+                          : 'border border-white/40 bg-white/90 text-[#1e1b4b]'
+                      }`}
+                    >
+                      <span className="text-[32px] leading-none">{['🥇', '🥈', '🥉'][idx]}</span>
+                      <div className="min-w-0 flex-1 leading-tight">
+                        <div className="truncate text-[22px] font-black">{st.nickname}</div>
+                        <div className={`text-[19px] font-extrabold ${idx === 0 ? 'text-[#7c2d12]' : 'text-[#c2410c]'}`}>
+                          ⭐ {st.pts} điểm
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Thanh thống kê lớp + Kêu gọi Follow nhấp nháy */}
+            <div className="mt-3.5 flex items-center justify-between gap-3">
+              <div className="flex items-center gap-3 rounded-full border-2 border-white/40 bg-black/30 px-5 py-2 text-[23px] font-extrabold text-white">
+                <span>👥 Sĩ số: {v.classSize} bạn</span>
+                <span>·</span>
+                <span>💝 Quỹ hoa: {v.fund.today} bông</span>
+              </div>
+
+              <motion.div
+                animate={{ scale: [1, 1.05, 1] }}
+                transition={{ duration: 0.85, repeat: Infinity }}
+                className="flex flex-1 items-center justify-center gap-2 rounded-full border-[3px] border-[#fef08a] bg-gradient-to-r from-[#ec4899] via-[#f43f5e] to-[#f59e0b] px-5 py-2 text-[23px] font-black text-white shadow-lg"
+              >
+                <span>➕</span>
+                <span>FOLLOW kênh để lần sau nhận thông báo vào lớp! 🔔</span>
+              </motion.div>
+            </div>
           </motion.div>
-          <div className="mt-1 whitespace-nowrap text-[44px] leading-tight drop-shadow">Tan lớp rồi! Hẹn gặp lại cả lớp nha 💕</div>
-          <div className="mt-2 text-[30px] font-bold leading-tight">Nhớ theo dõi kênh để không lỡ buổi học sau</div>
         </motion.div>
       )}
     </AnimatePresence>

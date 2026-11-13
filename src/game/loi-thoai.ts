@@ -36,12 +36,6 @@ export const REWARDS = [
   { name: 'một chú gấu bông', icon: '🧸' },
   { name: 'một chiếc vương miện giấy', icon: '👑' },
 ];
-// Số lần chép phạt: từ 10 tới 1 triệu, số nhỏ hay gặp hơn số to, làm tròn cho dễ đọc (vd 40, 3.500, 120.000)
-const penalty = () => {
-  const n = 10 ** (1 + Math.random() * 5);
-  const step = 10 ** Math.max(0, Math.floor(Math.log10(n)) - 1);
-  return Math.min(1_000_000, Math.round(n / step) * step).toLocaleString('vi-VN');
-};
 
 export const LINES = {
   // ---------- Vào tiết ----------
@@ -88,18 +82,18 @@ export const LINES = {
     'Sắp hết giờ, nhanh lên nào!',
   ] as L0,
 
-  // trêu bạn sai + phạt lên bục đứng thật (nhân vật lên đứng cạnh bảng, đeo bảng "học sinh cá biệt")
+  // mời bạn trả lời chưa đúng lên đứng cạnh cô làm đội cổ vũ / trợ giảng vui vẻ
   roastStand: [
-    (n) => `${n} sai mà tự tin quá, lên bục đứng cạnh cô một chút cho cả lớp chiêm ngưỡng. Học sinh cá biệt đây rồi!`,
-    (n) => `Ối ${n} sai nữa rồi! Lên bục đứng nha, coi như họp kiểm điểm cuối tuần.`,
-    (n) => `Cô phạt ${n} lên bục đứng một lát. Đứng xong nhớ trả lời đúng để cô còn có cớ tha.`,
-    (n) => `${n} ơi, lên đứng góc lớp cạnh bảng nha. Cô đùa thôi... mà thôi cứ đứng đi cho vui.`,
+    (n) => `${n} xém chút nữa là đúng rồi! Lên đứng cạnh cô làm trợ giảng cổ vũ cả lớp mấy câu nha!`,
+    (n) => `Ối ${n} trượt tay chút xíu! Lên bục đứng cạnh cô tiếp năng lượng cho cả lớp nha.`,
+    (n) => `Cô mời ${n} lên đứng cạnh cô làm đội cổ vũ đặc biệt một lát nha. Câu sau gỡ lại liền!`,
+    (n) => `${n} ơi, lên đứng cạnh bảng phụ cô cổ vũ cả lớp vài câu cho vui nha!`,
   ] as L1,
   // gọi bạn ngủ gật (ngồi im lâu) dậy
   wakeUp: [
-    (n) => `Ơ kìa ${n} ngủ gật rồi! Dậy đi, sếp tới kìa... à không, cô tới.`,
-    (n) => `${n} ơi, gật gù nãy giờ đó. Họp online cũng phải mở mắt chứ.`,
-    (n) => `Cả lớp gọi ${n} dậy giùm cô với. Ngủ ngon vậy chắc tối qua chạy deadline tới sáng.`,
+    (n) => `Ơ kìa ${n} đang nghỉ giải lao hả? Dậy chơi tiếp với cô nào!`,
+    (n) => `${n} ơi, cô pha trà sữa rồi nè, dậy đoán chữ tiếp với cả lớp nha.`,
+    (n) => `Cả lớp vẫy tay gọi ${n} dậy chơi tiếp với cô nào! Chắc tối qua chạy dự án chăm chỉ quá.`,
   ] as L1,
 
   // ---------- Thỉnh thoảng rủ tương tác (lúc đang chờ trả lời) ----------
@@ -120,7 +114,7 @@ export const LINES = {
   // kết quả bình chọn vui: l = lựa chọn đông nhất, c = số bạn
   pollResult: [
     (l, c) => `Kết quả nè: ${l} đông nhất, ${c} bạn luôn!`,
-    (l, c) => `Cô đếm rồi nha, ${l} thắng với ${c} bạn. Phe còn lại ra góc lớp ngồi suy ngẫm.`,
+    (l, c) => `Cô đếm rồi nha, ${l} thắng với ${c} bạn. Phe còn lại cố gắng rủ thêm đồng minh nha.`,
     (l, c) => `Ồ, ${l} áp đảo lớp mình, ${c} bạn. Cô ghi nhận.`,
   ] as L2,
   pollTie: [
@@ -194,17 +188,17 @@ export const LINES = {
   // ---------- Cô nhận hoa (bạn nhỏ lên bục đưa): cảm ơn theo bậc (n tên, g = "một bông hoa" / "một bó hoa nhỏ"...) ----------
   // ---------- Nút "Chào tạm biệt" (chủ kênh bấm trước khi xuống live) ----------
   goodbye: [
-    'Hôm nay lớp mình tới đây thôi nha cả lớp! Cô cảm ơn mọi người đã học cùng cô. Nhớ ăn uống đầy đủ, ngủ sớm, hẹn gặp lại cả lớp buổi sau nha!',
-    'Trống tan trường rồi cả lớp ơi! Cảm ơn các bạn đã ở lại học với cô tới giờ này. Ai chưa theo dõi kênh thì bấm theo dõi để buổi sau vào lớp sớm nha. Tạm biệt cả lớp!',
-    'Cô xin phép tan lớp nè. Hôm nay vui quá trời, cô thương cả lớp lắm. Về nghỉ ngơi cho khỏe, mai lại vào học với cô nha!',
-    'Tới giờ cô phải về chấm bài rồi! Cảm ơn cả lớp hôm nay chơi nhiệt tình quá. Chúc cả lớp một buổi tối thật vui, hẹn gặp lại buổi live sau nha!',
-    'Hết giờ học rồi cả lớp ơi! Cô cảm ơn từng bạn đã vào lớp, đã bình luận, đã thả tim cho cô. Nghỉ ngơi đi nha, hẹn gặp lại!',
+    'Tùng tùng tùng! Trống tan trường điểm rồi cả lớp ơi! Cất sách vở vào cặp về ăn ngon ngủ kỹ nha. Nhớ bấm Follow kênh và bật chuông ngay để lần sau nhận thông báo vào lớp đúng giờ nha!',
+    'Tan lớp rồi cả lớp ơi! Chúc cả lớp tối ngủ ngon không mơ thấy deadline, mai lương về ngập ví. Ai chưa Follow thì bấm Follow kênh liền tay để lần sau cô mở cửa lớp là nhận được thông báo vào học ngay nha!',
+    'Hết giờ học rồi! Cô xin phép đi uống trà sữa full topping đây. Cả lớp nhớ bấm nút Follow kênh ở góc trên màn hình để lần sau nhận thông báo vào lớp sớm, xí chỗ ngồi bàn đầu nha. Bye bye cả lớp!',
+    'Trống trường đã điểm, lễ bế giảng hôm nay kết thúc tại đây! Cô thương cả lớp nhiều lắm, về nghỉ ngơi sạc đầy pin, nhớ bấm Follow kênh để lần sau nhận thông báo vào lớp thi đua tiếp nha. Tạm biệt cả lớp!',
+    'Tan học thôi nào các thần đồng của cô ơi! Hôm nay ai cũng giỏi, cô cho cả lớp mười điểm tinh thần hết. Đừng quên bấm Follow kênh để lần sau máy báo chuông vào lớp ngay khi cô lên live nha!',
   ] as L0,
   // có bạn dẫn đầu tiết đang học thì cô nhắc tên
   goodbyeTop: [
-    (n) => `Hôm nay lớp mình tới đây thôi nha! Cô khen ${n} đang dẫn đầu lớp, giỏi lắm. Cảm ơn cả lớp đã học cùng cô, hẹn gặp lại buổi sau nha!`,
-    (n) => `Trống tan trường rồi cả lớp ơi! Chúc mừng ${n} đứng nhất tiết này. Cô cảm ơn mọi người, nhớ theo dõi kênh để buổi sau gặp lại cô nha. Tạm biệt!`,
-    (n) => `Cô xin phép tan lớp nè. ${n} hôm nay học giỏi quá, cả lớp vỗ tay cho ${n} nào! Cảm ơn tất cả, nghỉ ngơi cho khỏe, mai gặp lại nha!`,
+    (n) => `Tùng tùng tùng! Trống tan trường rồi cả lớp ơi! Hôm nay cô đặc biệt tuyên dương ${n} đã xuất sắc dẫn đầu lớp mình! Cả lớp nhớ bấm Follow kênh ngay để lần sau nhận thông báo vào lớp sớm và phục thù nha!`,
+    (n) => `Tan lớp thôi nào! Cả lớp nổ một tràng pháo tay thật to cho quán quân hôm nay là ${n} nha! Chúc mọi người ngủ ngon không gặp deadline, nhớ bấm Follow kênh để lần sau nhận thông báo vào lớp ngay khi cô mở live nha!`,
+    (n) => `Cô xin phép đóng cửa lớp nghỉ ngơi đây! Hôm nay ${n} học đỉnh quá trời, ngồi vững ghế đầu luôn. Các bạn nhớ bấm Follow kênh và bật chuông để lần sau nhận thông báo vào lớp sớm giành lại chức lớp trưởng nha. Bye bye cả lớp!`,
   ] as L1,
   // ---------- Lời đáp riêng cho quà trong bảng "Gửi tặng cô" (chủ kênh 2026-11-05), n = tên ----------
   thankHeart: [
@@ -461,18 +455,18 @@ export const LINES = {
   // ---------- Câu đố mẹo (câu 7, 13) ----------
   // mở màn tiết mục đố mẹo giữa tiết (2 câu liền, câu 11 và 12): cô dẫn hài trước câu đầu
   riddleSegment: [
-    'Tới phần đố mẹo rồi cả lớp ơi! Hai câu liền nhau, vẫn tính điểm như thường, nghĩ thẳng là thua, nghĩ xéo mới thắng.',
-    'Tới giờ cô hack não cả lớp rồi nha! Hai câu đố mẹo, vẫn chấm điểm, đáp án càng ngớ ngẩn càng dễ đúng.',
-    'Lương chưa về thì cô đố mẹo cho vui! Hai câu liền, điểm vẫn tính đủ, ai bị cô lừa thì tự cốc đầu mình một cái.',
-    'Phần xoắn não bắt đầu! Hai câu đố mẹo, đừng tin vào mắt mình, cũng đừng tin cô luôn.',
-    'Cẩn thận nha cả lớp, cô sắp ra hai câu đố mẹo lừa không trượt phát nào, gõ sai là lên đứng đó!',
-    'Hai câu đố mẹo liền nhau đây! Ai đúng cả hai cô phong làm thánh lầy của lớp.',
+    'Tới phần đố mẹo rồi cả lớp ơi! Hai câu liền nhau, vẫn tính điểm như thường, nghĩ thẳng là trật, nghĩ xéo mới trúng.',
+    'Tới giờ cô thử tài suy luận của cả lớp rồi nha! Hai câu đố mẹo, vẫn chấm điểm, đáp án cực kỳ bất ngờ.',
+    'Lương chưa về thì cô đố mẹo cho vui! Hai câu liền, điểm vẫn tính đủ, xem ai tỉnh táo nhất lớp nào.',
+    'Phần xoắn não bắt đầu! Hai câu đố mẹo, đọc kỹ từng chữ trên bảng nha cả lớp.',
+    'Chuẩn bị tinh thần nha cả lớp, cô sắp ra hai câu đố mẹo siêu thú vị, đoán trúng là đỉnh luôn!',
+    'Hai câu đố mẹo liền nhau đây! Ai đúng cả hai cô phong làm trạng nguyên đố mẹo của lớp.',
   ] as L0,
   // câu đố mẹo thứ hai trong tiết mục (nói ngắn, không dẫn dài)
   riddleSecond: [
-    'Câu đố mẹo thứ hai, cô lừa gắt hơn nha.',
-    'Câu đố mẹo thứ hai nè, cẩn thận.',
-    'Thêm một câu đố mẹo nữa, tỉnh táo lên.',
+    'Câu đố mẹo thứ hai, thú vị hơn nữa nha.',
+    'Câu đố mẹo thứ hai nè, đọc kỹ nha.',
+    'Thêm một câu đố mẹo nữa, tỉnh táo lên nào.',
   ] as L0,
   riddleReveal: [
     (answer, rest) => `Đáp án là ${answer}! Có ai bị cô lừa không, giơ tay lên coi? ${rest}`,
@@ -549,10 +543,10 @@ export const LINES = {
     (a) => `${a} nha. Tối nay cả lớp ôn lại bảng cửu chương cho cô.`,
   ] as L1,
   mathWrong: [
-    (n) => `${n} tính sai rồi kìa. Về nhà làm lại ${penalty()} bài toán nha.`,
-    (n) => `${n} ơi, nhẩm hay đoán vậy? Kế toán mà vậy là công ty phá sản.`,
-    (n) => `${n} cộng trừ kiểu gì mà ra số đó? Cô nể luôn.`,
-    (n) => `${n} sai rồi, mai mang bảng cửu chương lên cho cô kiểm tra.`,
+    (n) => `${n} nhẩm lệch một chút xíu rồi! Câu toán sau gỡ lại liền nha.`,
+    (n) => `${n} ơi, chắc đang bấm nhầm phím đúng không? Thử lại ở câu tiếp theo nha.`,
+    (n) => `${n} cộng nhầm chút xíu thôi, cô vẫn khen tinh thần xung phong tính nhẩm nhanh!`,
+    (n) => `${n} xém chút nữa là ra đúng đáp số rồi, câu sau cố lên nha.`,
   ] as L1,
 
   // ---------- Trong lúc hỏi ----------
@@ -625,8 +619,8 @@ export const LINES = {
     'Hết giờ mà chưa ai đúng. Cô gia hạn deadline thêm mười giây, kèm một chữ.',
     'Cô mở thêm một chữ nè. Vậy mà còn không ra thì cô đi uống trà sữa.',
     'Bí thật hả? Cô cho thêm một chữ với mười giây. Ráng lên.',
-    'Lớp mình làm cô lo quá. Thêm một chữ, thêm mười giây.',
-    'Gợi ý thêm một chữ. Câu này mà sai nữa là về chép phạt hết.',
+    'Lớp mình làm cô hồi hộp quá. Thêm một chữ, thêm mười giây.',
+    'Gợi ý thêm một chữ nè. Nhìn kỹ là đoán ra liền đó cả lớp.',
   ] as L0,
 
   // ---------- Hiện đáp án ----------
@@ -653,34 +647,34 @@ export const LINES = {
 
   revealNobody: [
     (a) => `Không ai đoán ra luôn hả? Đáp án là ${a} đó cả lớp.`,
-    (a) => `Là ${a}! Dễ vậy mà cả lớp bó tay. Cô giận rồi đó, giận năm giây thôi.`,
-    (a) => `Đáp án là ${a}. Lớp mình hôm nay ăn sáng chưa vậy?`,
-    (a) => `${a} nha cả lớp. Về nhà ôn bài lại hết cho cô.`,
-    (a) => `Cả lớp không ai ra. Đáp án là ${a}. Cô xin phép thở dài một cái.`,
-    (a) => `Là ${a}. Câu này mà sai thì cuối tháng cô trừ lương... à nhầm, trừ điểm.`,
-    (a) => `Đáp án ${a}. Câu này cô tưởng dễ như ăn bánh, ai dè.`,
-    (a) => `${a}! Cả lớp nợ cô một câu. Câu sau trả nha.`,
-    (a) => `Là ${a} đó. Lớp mình đang tiết kiệm chữ giống tiết kiệm tiền hả?`,
+    (a) => `Là ${a}! Câu này hơi thử thách chút xíu, câu sau cả lớp gỡ lại nha.`,
+    (a) => `Đáp án là ${a}. Lớp mình nhớ từ này để lần sau gặp lại là lấy trọn điểm nha.`,
+    (a) => `${a} nha cả lớp. Cùng ghi nhớ từ vựng thú vị này nha.`,
+    (a) => `Cả lớp chưa ai ra. Đáp án là ${a}. Câu tiếp theo dễ thở hơn nè.`,
+    (a) => `Là ${a} nha. Không sao hết, câu tiếp theo lấy lại phong độ liền.`,
+    (a) => `Đáp án ${a}. Câu này cô chọn hơi hiểm hóc chút xíu.`,
+    (a) => `${a}! Cả lớp để dành sức bứt phá ở câu sau nha.`,
+    (a) => `Là ${a} đó. Khởi động tay gõ tiếp câu mới nào cả lớp.`,
     (a) => `Đáp án ${a}. Thôi không sao, câu sau làm lại.`,
   ] as L1,
 
   roastWrong: [
-    (n) => `${n} gõ sai rồi kìa. Về nhà chép phạt ${penalty()} lần nha.`,
-    (n) => `${n} sai rồi. Phạt chép lại đáp án ${penalty()} lần, mai nộp cho cô.`,
-    (n) => `Cô phạt ${n} chép ${penalty()} lần. Chép xong mới được tan làm.`,
-    (n) => `${n} ơi, đoán bừa phải không? Cô biết hết đó.`,
-    (n) => `${n} sai mà tự tin quá, cô nể.`,
-    (n) => `Cô thấy ${n} gõ sai nha. Lần sau cẩn thận hơn nha.`,
-    (n) => `${n} ơi, chữ đó không có trong từ điển đâu.`,
-    (n) => `${n} sai rồi, nhưng cô thưởng điểm dũng cảm.`,
-    (n) => `${n} gõ gì vậy? Cô đọc mà muốn lên huyết áp.`,
-    (n) => `Câu này ${n} làm cô cười quá. Sai rồi nha.`,
-    (n) => `${n} sai mà không sao, ít ra còn dám gõ, hơn khối người im re.`,
-    (n) => `Ê ${n}, nhìn lại mấy chữ trên bảng coi, đâu có chữ đó.`,
-    (n) => `${n} trả lời nhanh mà sai. Nhanh nhảu đoảng đó nha.`,
-    (n) => `Cô ghi tên ${n} vào sổ đầu bài nha. Đùa đó, lần sau cố lên.`,
-    (n) => `${n} chắc đang vừa xem live vừa họp nên gõ nhầm.`,
-    (n) => `${n} sai rồi. Ngồi xuống, câu sau làm lại.`,
+    (n) => `${n} gõ xém trúng rồi kìa! Câu sau gỡ lại mười điểm liền nha.`,
+    (n) => `${n} trượt tay một chút xíu thôi. Cô vẫn khen tinh thần xung phong nhanh nhất lớp!`,
+    (n) => `Cô thấy ${n} gõ rất nhanh nha, chỉnh lại một chữ nữa là chuẩn bài luôn.`,
+    (n) => `${n} ơi, đáp án này gần giống thôi nha, câu sau lấy lại điểm liền.`,
+    (n) => `${n} chưa đúng mà phong thái tự tin quá, cô tặng mười điểm tinh thần.`,
+    (n) => `Cô thấy ${n} xung phong rất nhiệt tình nha. Lần sau nhìn kỹ dấu chữ hơn chút là ăn điểm.`,
+    (n) => `${n} ơi, từ này hơi lạ phải không? Câu tiếp theo dễ hơn nè.`,
+    (n) => `${n} chưa trúng câu này, nhưng cô thưởng điểm dũng cảm xung phong.`,
+    (n) => `${n} chắc đang vừa xem live vừa canh săn sale nên gõ nhầm phím chút xíu.`,
+    (n) => `Câu này ${n} đoán sáng tạo ghê! Tiếc là chưa khớp đáp án của cô.`,
+    (n) => `${n} chưa đúng mà không sao, dám gõ xung phong là cô tuyên dương rồi.`,
+    (n) => `${n} ơi, nhìn lại mấy chữ trên bảng chút xíu nha, xém ra rồi đó.`,
+    (n) => `${n} gõ nhanh như chớp luôn, câu sau giữ tốc độ này là về nhất chắc.`,
+    (n) => `Cô nhớ tên ${n} chăm phát biểu rồi nha. Câu sau cố lên lấy mười điểm!`,
+    (n) => `${n} chắc đang vừa xem live vừa làm việc nên gõ nhầm một chữ.`,
+    (n) => `${n} tiếc quá xém đúng rồi. Chuẩn bị câu sau gỡ lại nha.`,
   ] as L1,
 
   // chuỗi câu đúng liền (mốc 5, 12, 17: GAME.streakMilestones). n = tên, k = số câu liền
@@ -917,13 +911,13 @@ export const LINES = {
     (c) => `Cô thua ${c} bạn. Hai điểm cho mỗi người.`,
   ] as L1,
   rpsLose: [
-    (c) => `${c} bạn thua cô. Về tập oẳn tù tì thêm đi.`,
-    (c) => `Cô hạ được ${c} bạn. Cô vẫn còn phong độ lắm.`,
-    (c) => `${c} bạn thua cô kìa. Lêu lêu.`,
+    (c) => `Có ${c} bạn chưa thắng cô ván này. Ván sau gỡ lại nha!`,
+    (c) => `Cô may mắn thắng được ${c} bạn. Cô vẫn còn phong độ lắm.`,
+    (c) => `${c} bạn hoà hoặc nhường cô thắng ván này. Cảm ơn cả lớp nha!`,
   ] as L1,
   rpsNobody: [
     'Không ai chơi với cô hết. Cô tự oẳn tù tì với cái bảng vậy.',
-    'Lớp mình sợ thua cô nên không ai chơi hả?',
+    'Lớp mình nhường cô thắng ván này đúng không?',
     'Không ai ra cái gì. Cô thắng mặc định nha.',
   ] as L0,
 
@@ -932,10 +926,10 @@ export const LINES = {
     (n) => `${n} đâu rồi? Lên bảng trả bài cho cô. Mười lăm giây nha.`,
     (n) => `Hôm nay cô gọi ${n}. Chỉ mình ${n} được trả lời câu này.`,
     (n) => `${n} ơi, tới lượt kiểm tra miệng. Cả lớp im lặng nghe bạn trả lời.`,
-    (n) => `Cô dò tên trong sổ... ${n}! Lên bảng.`,
-    (n) => `${n} ngồi im quá, cô gọi lên luôn. Mười lăm giây, đúng được năm điểm.`,
-    (n) => `Mời ${n} lên bảng! Các bạn khác không được nhắc bài nha.`,
-    (n) => `Kiểm tra miệng nha, cô chọn ${n}. Run chưa, run như lúc bị sếp gọi vào phòng hả?`,
+    (n) => `Cô dò tên trong danh sách... ${n}! Mời lên bảng.`,
+    (n) => `${n} ơi, cô mời lên bảng thử sức câu này nha. Mười lăm giây, đúng được năm điểm.`,
+    (n) => `Mời ${n} lên bảng! Các bạn khác cổ vũ cho bạn nha.`,
+    (n) => `Kiểm tra miệng vui vẻ nha, cô chọn ${n}. Bình tĩnh tự tin lấy năm điểm nào!`,
   ] as L1,
   callUpRight: [
     (n) => `${n} trả lời đúng! Năm điểm, về chỗ.`,
@@ -946,24 +940,24 @@ export const LINES = {
     (n) => `Đúng luôn ${n}. Cô định làm khó mà không ăn thua.`,
   ] as L1,
   callUpWrong: [
-    (n) => `${n} sai rồi. Về chỗ, mai trả bài lại.`,
-    (n) => `Ôi ${n}, cô gọi đúng lúc chưa học bài.`,
-    (n) => `${n} trả lời sai. Cô không ghi sổ đâu, lần sau cố lên.`,
-    (n) => `Sai rồi ${n}. Có xem bảng không vậy?`,
-    (n) => `${n} ơi, đáp án đâu phải vậy. Về chỗ ngồi suy nghĩ nha.`,
-    (n) => `Câu dễ vậy mà ${n} sai. Cô mời phụ huynh nha... đùa thôi.`,
-    (n) => `${n} gõ tự tin ghê mà sai. Cô cho điểm tự tin.`,
-    (n) => `Chưa đúng ${n}. Cả lớp đừng cười bạn nha, ai cũng có lúc vậy.`,
+    (n) => `${n} chưa đúng câu này rồi. Về chỗ, lần sau gỡ lại nha.`,
+    (n) => `Ôi ${n}, câu này hơi bất ngờ đúng không? Không sao nha.`,
+    (n) => `${n} trả lời chưa trúng rồi. Lần sau cố lên lấy năm điểm nha.`,
+    (n) => `Tiếc quá ${n} ơi, xém chút nữa là đúng rồi.`,
+    (n) => `${n} ơi, đáp án hơi khác một chút. Về chỗ nghỉ ngơi câu sau gỡ lại nha.`,
+    (n) => `Câu này hơi lắt léo nên ${n} nhầm chút xíu. Cô vẫn khen tinh thần xung phong.`,
+    (n) => `${n} trả lời rất tự tin. Cô tặng điểm tinh thần nha.`,
+    (n) => `Chưa đúng ${n} ơi. Cả lớp vỗ tay khích lệ bạn nha!`,
   ] as L1,
   callUpSilent: [
-    (n) => `${n} im lặng luôn. Chắc ngủ gật rồi.`,
-    (n) => `Hết giờ mà ${n} không nói gì. Cô ghi tên vô sổ đầu bài nha.`,
-    (n) => `${n} đâu rồi? Cô gọi mà không thấy trả lời.`,
-    (n) => `${n} đứng hình luôn. Về chỗ đi.`,
+    (n) => `${n} chưa kịp gõ rồi. Chắc đang bận việc chút xíu.`,
+    (n) => `Hết giờ mà ${n} chưa kịp trả lời. Cô để dành cơ hội cho lần sau nha.`,
+    (n) => `${n} đâu rồi? Chắc đang đi lấy ly nước, hẹn câu sau nha.`,
+    (n) => `${n} chưa kịp lên tiếng. Về chỗ chuẩn bị cho tiết tiếp theo nha.`,
     (n) => `${n} chắc đang đi lấy nước. Thôi để lần sau.`,
-    (n) => `Mười lăm giây trôi qua, ${n} vẫn im. Cô hiểu rồi, chưa học bài.`,
-    (n) => `${n} trốn kiểm tra miệng hả? Cô nhớ tên rồi nha.`,
-    (n) => `${n} không trả lời. Cả lớp nhắc bạn học bài đi.`,
+    (n) => `Mười lăm giây trôi qua nhanh quá, ${n} chưa kịp gõ. Hẹn lần sau nha.`,
+    (n) => `${n} bận tay chút xíu rồi, cô mời bạn về chỗ nha.`,
+    (n) => `${n} chưa kịp trả lời. Cả lớp vỗ tay cổ vũ bạn ở câu sau nha.`,
   ] as L1,
 
   pickIntro: [
@@ -974,17 +968,17 @@ export const LINES = {
   ] as L2,
   pickResult: [
     (win, pct) => `Phe ${win} thắng với ${pct} phần trăm.`,
-    (win, pct) => `${pct} phần trăm cả lớp chọn ${win}. Phe kia ra góc lớp đứng.`,
+    (win, pct) => `${pct} phần trăm cả lớp chọn ${win}. Đông vui quá trời!`,
     (win, pct) => `Kết quả: ${win} thắng, ${pct} phần trăm.`,
     (win, pct) => `Lớp mình chọn ${win}, ${pct} phần trăm luôn.`,
   ] as L2,
   pickRoast: [
-    (lose) => `Phe ${lose} ít người quá, ăn nói cẩn thận nha.`,
-    (lose) => `Ai chọn ${lose} thì giơ tay lên cho cô coi mặt.`,
-    (lose) => `Phe ${lose} thua rồi, về nhà suy nghĩ lại cuộc đời đi.`,
-    (lose) => `Cô không bênh ai, nhưng chọn ${lose} là hơi lạ đó.`,
-    (lose) => `${lose} cũng ngon mà, sao ít người chọn vậy ta?`,
-    (lose) => `Phe ${lose} ơi, đừng buồn, cô cũng từng chọn sai, chọn sai người yêu nữa kìa.`,
+    (lose) => `Phe ${lose} hôm nay hơi ít đồng minh chút xíu, lần sau rủ thêm bạn nha.`,
+    (lose) => `Ai chọn ${lose} là có gu riêng độc đáo lắm đó nha.`,
+    (lose) => `Phe ${lose} tuy ít hơn nhưng tinh thần vẫn rất nhiệt huyết.`,
+    (lose) => `Cô thấy cả hai món đều tuyệt, phe ${lose} đừng buồn nha.`,
+    (lose) => `${lose} cũng ngon mà, chắc hôm nay cả lớp đổi khẩu vị chút xíu.`,
+    (lose) => `Phe ${lose} ơi, giữ vững đam mê nha, cô vẫn ủng hộ tinh thần các bạn!`,
   ] as L1,
   pickTie: [
     'Hòa luôn! Lớp mình chia đôi rõ ràng quá.',
@@ -1054,17 +1048,17 @@ export const LINES = {
     'Không có tim nào luôn, cô nhảy một mình hơi quê. Về chỗ thôi cả lớp.',
   ] as L0,
 
-  // ---------- Thầy giám thị đưa bạn ngồi im lâu ra ngoài (2026-11-07): a = bạn ra, b = bạn vào ----------
+  // ---------- Thầy quản lớp mời bạn ngồi im lâu nghỉ giải lao, nhường ghế cho bạn mới (2026-11-07): a = bạn ra, b = bạn vào ----------
   escort: [
-    (a, b) => `Thầy giám thị tới rồi kìa! ${a} ngồi im lâu quá nên thầy mời ra ngoài hít thở chút nha. Mời ${b} vào lớp ngồi thay.`,
-    (a, b) => `Ối, giám thị đi tuần! ${a} ngủ quên rồi, ra ngoài rửa mặt nha. ${b} tương tác nhiệt tình, vào lớp ngồi đi.`,
-    (a, b) => `${a} im lặng lâu quá, thầy giám thị mời ra ngoài rồi. Chỗ trống dành cho ${b} nha, vào đi bạn.`,
-    (a, b) => `Giám thị bắt được ${a} ngồi im rồi! Ra ngoài một lát, muốn vào lại thì bình luận nha. Mời ${b} vào lớp.`,
+    (a, b) => `Thầy quản lớp tới hỗ trợ nè! ${a} đang tạm nghỉ giải lao nên nhường ghế cho ${b} vào lớp ngồi học tiếp nha.`,
+    (a, b) => `Cả lớp chào đón ${b} tương tác nhiệt tình vào ngồi ghế nha! Cảm ơn ${a} đã nhường chỗ, khi nào quay lại chỉ cần bình luận là có ghế.`,
+    (a, b) => `${a} đang tạm nghỉ tay chút xíu, thầy quản lớp mời ${b} vào ngồi ghế học cùng cả lớp nha.`,
+    (a, b) => `Mời ${b} vào bàn học! ${a} nghỉ giải lao uống miếng nước, lát bình luận một câu là vào lớp tiếp nha.`,
   ] as L2,
-  // không ai chờ ghế (chủ kênh bấm nút thử): chỉ đưa bạn ra
+  // không ai chờ ghế (chủ kênh bấm nút thử): chỉ đưa bạn ra nghỉ giải lao
   escortAlone: [
-    (a) => `Thầy giám thị đi tuần! ${a} ngồi im lâu quá, ra ngoài hít thở chút nha. Muốn vào lại thì bình luận một câu là được.`,
-    (a) => `Ối, giám thị bắt được ${a} ngủ gật rồi! Ra ngoài rửa mặt đi, bình luận là thầy cho vào lại.`,
+    (a) => `Thầy quản lớp mời ${a} tạm nghỉ giải lao uống miếng nước nha. Khi nào quay lại chỉ cần bình luận một câu là vào ghế liền.`,
+    (a) => `${a} đang tạm nghỉ tay chút xíu, lúc nào quay lại bình luận là thầy xếp ghế vào học tiếp nha.`,
   ] as L1,
 };
 

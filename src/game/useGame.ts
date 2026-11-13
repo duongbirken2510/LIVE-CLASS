@@ -209,6 +209,11 @@ export function useGame() {
       if (c.action === 'custom' && c.text === 'escort') say(room.forceEscort(Date.now()));
       if (c.action === 'custom' && c.text?.startsWith('recess:')) say(room.forceRecess(c.text.slice(7) as RecessGame, Date.now()));
       if (c.action === 'custom' && c.text?.startsWith('show:')) say(room.forceShow(c.text.slice(5) as ShowKind, Date.now()));
+      if (c.action === 'custom' && c.text?.startsWith('vong:')) {
+        voice.stop();
+        chatter.current = [];
+        say(room.jumpToStage(Number(c.text.slice(5)) || 0, Date.now()));
+      }
     },
   });
 
