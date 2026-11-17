@@ -515,7 +515,20 @@ let activeVieneuVoice =
     : process.env.VIENEU_VOICE ??
       (settings.room?.teacher === 'thay' || settings.room?.teacherVoice === 'nam' ? DEFAULT_MALE_VIENEU : DEFAULT_FEMALE_VIENEU);
 let vieneuState: 'loading' | 'ready' | 'unavailable' = 'loading';
-let vieneuVoices: VieneuVoiceInfo[] = [];
+let vieneuVoices: VieneuVoiceInfo[] = [
+  { id: 'Adam bựa', name: 'Adam bựa', description: 'Nam · Bắc · Phong cách hài hước, tự nhiên', gender: 'male' },
+  { id: 'Trúc Ly', name: 'Trúc Ly', description: 'Nữ · Bắc · Phong cách tự nhiên, truyền cảm', gender: 'female' },
+  { id: 'Ngọc Huyền', name: 'Ngọc Huyền', description: 'Nữ · Bắc · Phong cách dịu dàng, trong trẻo', gender: 'female' },
+  { id: 'Bình', name: 'Bình', description: 'Nam · Bắc · Giọng ấm, rõ ràng', gender: 'male' },
+  { id: 'Tuyên', name: 'Tuyên', description: 'Nam · Bắc · Giọng dẫn chương trình', gender: 'male' },
+  { id: 'Vĩnh', name: 'Vĩnh', description: 'Nam · Nam · Phong cách miền Nam', gender: 'male' },
+  { id: 'Nguyên', name: 'Nguyên', description: 'Nam · Nam · Trẻ trung, năng động', gender: 'male' },
+  { id: 'Sơn', name: 'Sơn', description: 'Nam · Nam · Trầm ấm', gender: 'male' },
+  { id: 'Đoan', name: 'Đoan', description: 'Nữ · Nam · Dịu dàng miền Nam', gender: 'female' },
+  { id: 'Ngọc', name: 'Ngọc', description: 'Nữ · Bắc · Tự nhiên', gender: 'female' },
+  { id: 'Ly', name: 'Ly', description: 'Nữ · Bắc · Trẻ trung', gender: 'female' },
+  { id: 'Hương', name: 'Hương', description: 'Nữ · Bắc · Truyền cảm', gender: 'female' },
+];
 const vieneuCache = new Map<string, Buffer>();
 let vieneuProc: ChildProcessByStdio<Writable, Readable, null> | null = null;
 let nextJobId = 1;
@@ -1223,7 +1236,9 @@ ${list(banned.map(([id, b]) => `<b>${esc(b.answer)}</b> · ${esc(b.clue)} <code>
 
 // ---------- Khởi động ----------
 async function start() {
-  if (process.env.NODE_ENV !== 'production') {
+  const distDir = path.join(__dirname, 'dist');
+  const distIndex = path.join(distDir, 'index.html');
+  if (process.env.NODE_ENV !== 'production' || !fs.existsSync(distIndex)) {
     const { createServer } = await import('vite');
     const vite = await createServer({
       // LIVE_MODE=1 (BAT-LIVE.bat): tắt tự tải lại, sửa code không làm trang stage reset giữa live
@@ -1237,8 +1252,8 @@ async function start() {
     });
     app.use(vite.middlewares);
   } else {
-    app.use(express.static(path.join(__dirname, 'dist')));
-    app.get('*', (_req, res) => res.sendFile(path.join(__dirname, 'dist', 'index.html')));
+    app.use(express.static(distDir));
+    app.get('*', (_req, res) => res.sendFile(distIndex));
   }
 
   // Khởi chạy ngầm worker giọng đọc VieNeu-TTS ngay trong tiến trình con

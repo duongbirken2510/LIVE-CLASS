@@ -8,6 +8,8 @@ if not exist node_modules (
 echo Dang bat game... Dong cua so nay la tat game.
 echo Link cho TikTok LIVE Studio: http://lvh.me:3006/?view=stage  (1080 x 1920)
 echo Bao cao sau buoi live: http://localhost:3006/bao-cao
+rem Dam bao luon chay qua Vite ngay ca khi may tinh co bien NODE_ENV=production
+set NODE_ENV=development
 rem Che do live: trang stage khong tu tai lai khi sua code
 set LIVE_MODE=1
 rem Cong rieng cua Lop Hoc Chu (game khac dung 3000)
